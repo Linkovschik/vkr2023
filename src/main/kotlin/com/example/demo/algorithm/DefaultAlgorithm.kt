@@ -20,9 +20,17 @@ class DefaultAlgorithm : Algorithm {
 
     override fun rebuildRoutes(routes: List<Route>): List<Route> {
 
-        routes.forEach { mapMatrixController.makeRouteVisitSquares(it) }
+        try {
 
-        return routes.map { updateRouteByAlgorithm(it) }
+            routes.forEach { mapMatrixController.makeRouteVisitSquares(it) }
+
+            return routes.map { updateRouteByAlgorithm(it) }
+        }
+        catch (e: Exception) {
+            println(e.message)
+        }
+
+        return emptyList()
     }
 
     private fun updateRouteByAlgorithm(route: Route): Route {

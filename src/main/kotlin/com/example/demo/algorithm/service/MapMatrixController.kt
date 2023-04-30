@@ -24,8 +24,11 @@ class MapMatrixController(val mapSquares: List<MapSquare>) {
         val sortedByVisitedSquares = getVisitedSquaresOrderedByCountOfVisits()
         val potentiallyAvoidedSquares = sortedByVisitedSquares.filter { it.notIntersect(route.start) && it.notIntersect(route.end) }.shuffled()
 
+        if (potentiallyAvoidedSquares.isEmpty())
+            return emptyList()
+
         val randomStartIndex = Random.nextInt(potentiallyAvoidedSquares.size)
-        val randomEndIndex = randomStartIndex + Random.nextInt(potentiallyAvoidedSquares.size - randomStartIndex - 1)
+        val randomEndIndex = randomStartIndex + Random.nextInt(potentiallyAvoidedSquares.size - randomStartIndex)
         return potentiallyAvoidedSquares.subList(randomStartIndex, randomEndIndex)
     }
 
