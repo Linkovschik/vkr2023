@@ -9,6 +9,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 map.on('click', onMapClick);
 
 var mapStructure = new MapStructure(map);
+var buildRouteTemp = new BuildRouteTemp(mapStructure);
 
 function updateRoutesToDatabase() {
 
@@ -37,19 +38,8 @@ function loadRouteFromDatabase() {
     })
         .done(function (routeDataList) {
             routeDataList.forEach((routeData) => {
-                var start = routeData.start
-                var startMarker =  L.marker(L.latLng(start.lat, start.lng), { icon: mapStructure.blueIcon })
-                var startPoint = new Point(start.lat, start.lng, startMarker)
-
-                var end = routeData.end
-                var endMarker =  L.marker(L.latLng(end.lat, end.lng), { icon: mapStructure.blackIcon })
-                var endPoint = new Point(end.lat, end.lng, endMarker)
-
-                var polyline = L.polyline(routeData.coordinates.map(mpoint => [mpoint.lat, mpoint.lng]), {color: 'red'});
-
-                var route = new Route(routeData, startPoint, endPoint, polyline)
-        
-                mapStructure.addObjectToBothMapAndCache(route)
+                var route = new Route(routeData, mapStructure)
+                route.addOnMapCache()
             });
         })
         .fail(function (jqxhr, textStatus, error) {
@@ -89,38 +79,43 @@ function onPutRouteStart() {
     mapStructure.mapState = MapStatesEnum.PutRouteStart
 }
 
-function OnPutRouteEnd() {
+function onPutRouteEnd() {
     mapStructure.mapState = MapStatesEnum.PutRouteEnd
+}
+
+function onBuildRoute() {
+    mapStructure.mapState = MapStatesEnum.BuildRoute
+
+    if (!buildRouteTemp.isBuildRouteTempCompleted()) {
+        mapStructure.mapState = MapStatesEnum.Algorithm
+        return
+    }
+
+    var polyStart = buildRouteTemp.startPoint.getLatLng()
+    var polyEnd = buildRouteTemp.endPoint.getLatLng()
+
+    var routeData = buildRoute(polyStart, polyEnd)
+    var route = new Route(routeData, mapStructure)
+    route.addOnMap()
+
+    buildRouteTemp.clearBuildRouteTemp()
+
+    mapStructure.mapState = MapStatesEnum.Algorithm
 }
 
 function onMapClick(e) {
     if (mapStructure.mapState == MapStatesEnum.PutRouteStart) {
-        var pointMarker = L.marker(e.latlng, { icon: mapStructure.blueIcon })
-        var point = new Point(e.latlng.lat, e.latlng.lng, pointMarker)
+        var point = new StartPoint(e.latlng.lat, e.latlng.lng, mapStructure)
 
-        mapStructure.addObjectToBothMapAndTemp(point)
+        buildRouteTemp.setBuildRouteTempStartPoint(point)
+
+        mapStructure.mapState = MapStatesEnum.Algorithm
     }
 
     if (mapStructure.mapState == MapStatesEnum.PutRouteEnd) {
-        var pointMarker = L.marker(e.latlng, { icon: mapStructure.blackIcon })
-        var point = new Point(e.latlng.lat, e.latlng.lng, pointMarker)
+        var point = new EndPoint(e.latlng.lat, e.latlng.lng, mapStructure)
 
-        mapStructure.addObjectToBothMapAndTemp(point)
-
-        var endPoint = mapStructure.popObjectFromTempAndMap()
-        var startPoint = mapStructure.popObjectFromTempAndMap()
-
-        mapStructure.clearObjectsFromBothMapAndTemp()
-
-        var polyStart = L.latLng(startPoint.lat, startPoint.lng)
-        var polyEnd = L.latLng(endPoint.lat, endPoint.lng)
-
-        var routeData = buildRoute(polyStart, polyEnd)
-        var polyline = L.polyline(routeData.coordinates.map(mpoint => [mpoint.lat, mpoint.lng]), {color: 'red'});
-
-        var route = new Route(routeData, startPoint, endPoint, polyline)
-
-        mapStructure.addObjectToBothMapAndCache(route)
+        buildRouteTemp.setBuildRouteTempEndPoint(point)
 
         mapStructure.mapState = MapStatesEnum.Algorithm
     }
@@ -142,19 +137,8 @@ function startAlgorithm() {
     .done(function (routeDataList) {
         mapStructure.clearObjectsFromBothMapAndCache()
         routeDataList.forEach((routeData) => {
-            var start = routeData.start
-            var startMarker =  L.marker(L.latLng(start.lat, start.lng), { icon: mapStructure.blueIcon })
-            var startPoint = new Point(start.lat, start.lng, startMarker)
-
-            var end = routeData.end
-            var endMarker =  L.marker(L.latLng(end.lat, end.lng), { icon: mapStructure.blackIcon })
-            var endPoint = new Point(end.lat, end.lng, endMarker)
-
-            var polyline = L.polyline(routeData.coordinates.map(mpoint => [mpoint.lat, mpoint.lng]), {color: 'red'});
-
-            var route = new Route(routeData, startPoint, endPoint, polyline)
-    
-            mapStructure.addObjectToBothMapAndCache(route)
+            var route = new Route(routeData, mapStructure)
+            route.addOnMap()
         });
     })
     .fail(function (jqxhr, textStatus, error) {

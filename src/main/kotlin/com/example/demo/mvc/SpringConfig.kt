@@ -31,6 +31,7 @@ class SpringConfig @Autowired constructor(private val applicationContext: Applic
         templateResolver.prefix = "/WEB-INF/views/"
         templateResolver.suffix = ".html"
         templateResolver.characterEncoding = "UTF-8"
+        templateResolver.isCacheable = false
         return templateResolver
     }
 

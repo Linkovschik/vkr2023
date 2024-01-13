@@ -32,6 +32,9 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	implementation("com.squareup.retrofit2:retrofit:2.9.0")
 	implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation(kotlin("stdlib-jdk8"))
+	developmentOnly("org.springframework.boot:spring-boot-devtools")
+	//implementation("org.webjars.npm:geoman-io__leaflet-geoman-free:2.11.4")
 }
 
 tasks.withType<KotlinCompile> {

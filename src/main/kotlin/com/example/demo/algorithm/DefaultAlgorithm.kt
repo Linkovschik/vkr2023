@@ -5,7 +5,6 @@ import com.example.demo.algorithm.service.MapMatrixController
 import com.example.demo.geojson.model.Route
 import com.example.demo.geojson.service.MappingService
 import com.example.demo.retrofit.DrivingService
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
 @Component
