@@ -1,4 +1,4 @@
-const MapStatesEnum = { "PutRouteStart": 0, "PutRouteEnd": 1, "BuildRoute": 2, "Algorithm": 3 };
+const MapStatesEnum = { "PutRouteStart": 0, "PutRouteEnd": 1, "BuildRoute": 2, "Algorithm": 3, "RouteEdit": 4 };
 
 const IndexZObjectKeepTypeMap = new Map([
   ["temp", 1],
@@ -9,6 +9,8 @@ class MapLayerObject {
     constructor(layerObject, mapStructure) {
         this.layerObject = layerObject
         this.mapStructure = mapStructure
+
+        this.layerObject.relatedObject = this
     }
 
     addOnMap() {
@@ -44,6 +46,7 @@ class Point extends MapLayerObject {
         this.parents = parents
 
         this.enableDraggingUpdate()
+        this.enableRouteRelatedPointClick()
     }
 
     enableDraggingUpdate() {
@@ -56,6 +59,24 @@ class Point extends MapLayerObject {
             var marker = event.target;
             var position = marker.getLatLng();
             marker.setLatLng(new L.LatLng(position.lat, position.lng));
+         });
+    }
+
+    enableRouteRelatedPointClick() {
+        if (!this.layerObject instanceof L.Marker)
+            return
+
+        var marker = this.layerObject
+        marker.on('dblclick', function(event) {
+            var marker = event.target;
+            if (!marker.relatedObject instanceof Point)
+                return
+
+            var parent = marker.relatedObject.parents.values().next().value
+            if (parent == null)
+                return
+
+            parent.markAsSelected()
          });
     }
 
@@ -84,7 +105,6 @@ class Point extends MapLayerObject {
 
     addOnMap() {
         super.addOnMap()
-
     }
 
     addOnMapCache() {
@@ -136,6 +156,9 @@ class Route extends MapLayerObject {
         this.end.addParent(this)
     }
 
+    markAsSelected() {
+        this.mapStructure.setSelectedRoute(this)
+    }
 
     removeFromMap() {
         this.start.removeFromMap()
@@ -225,6 +248,7 @@ class MapStructure {
             shadowSize: [41, 41]
         })
 
+        this.selectedRoute = null
         this.adjustLayerZIndexes()
     }
 
@@ -233,6 +257,23 @@ class MapStructure {
            if (IndexZObjectKeepTypeMap.get("temp") == event.layer.ZIndex && event.layer instanceof L.Path)
             event.layer.bringToFront()
         });
+    }
+
+    setSelectedRoute(route) {
+        if (this.mapState != MapStatesEnum.Algorithm && this.mapState != MapStatesEnum.RouteEdit)
+            return
+
+        if (!route instanceof Route)
+            return
+
+        if (this.selectedRoute === route && this.mapState == MapStatesEnum.RouteEdit) {
+            this.selectedRoute = null
+            this.mapState = MapStatesEnum.Algorithm
+            return
+        }
+
+        this.mapState = MapStatesEnum.RouteEdit
+        this.selectedRoute = route
     }
 
 
