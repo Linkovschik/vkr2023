@@ -1,16 +1,3 @@
-map = L.map('mapid', { editable: true }).setView([54.7370888, 55.9555806], 15);
-//привязка событий карты
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
-
-//L.geoJSON(states).addTo(map);
-
-map.on('click', onMapClick);
-
-var mapStructure = new MapStructure(map);
-var buildRouteTemp = new BuildRouteTemp(mapStructure);
-
 function updateRoutesToDatabase() {
 
     var routeDataToSave = {routes: mapStructure.mapObjects.filter(obj => obj instanceof Route).map(obj => obj.routeData) }
