@@ -5,6 +5,127 @@ const IndexZObjectKeepTypeMap = new Map([
   ["cache", 2]
 ]);
 
+class MapStructure {
+    constructor(map) {
+        this.map = map
+        this.mapState = MapStatesEnum.Algorithm
+        this.mapObjects = []
+        this.mapTempObjects = []
+        this.figuresOnMap = L.layerGroup([]).addTo(map)
+        this.tempFiguresOnMap = L.layerGroup([]).addTo(map)
+        this.greenIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        })
+        this.redIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        })
+        this.blackIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        })
+        this.blueIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        })
+
+        this.selectedRoute = null
+        this.adjustLayerZIndexes()
+    }
+
+    adjustLayerZIndexes() {
+        this.map.on('layeradd',function(event){
+           if (IndexZObjectKeepTypeMap.get("temp") == event.layer.ZIndex && event.layer instanceof L.Path)
+            event.layer.bringToFront()
+        });
+    }
+
+    setSelectedRoute(route) {
+        if (this.mapState != MapStatesEnum.Algorithm && this.mapState != MapStatesEnum.RouteEdit)
+            return
+
+        if (!route instanceof Route)
+            return
+
+        if (this.selectedRoute === route && this.mapState == MapStatesEnum.RouteEdit) {
+            this.selectedRoute = null
+            this.mapState = MapStatesEnum.Algorithm
+            return
+        }
+
+        this.mapState = MapStatesEnum.RouteEdit
+        this.selectedRoute = route
+    }
+
+
+    addObjectToBothMapAndTemp(mapLayerObject) {
+        this.tempFiguresOnMap.addLayer(mapLayerObject.layerObject)
+        this.mapTempObjects.push(mapLayerObject)
+    }
+
+    popObjectFromTempAndMap() {
+        var res = this.mapTempObjects.pop()
+        this.tempFiguresOnMap.removeLayer(res.layerObject)
+        return res
+    }
+
+    removeObjectFromBothMapAndTemp(mapLayerObject) {
+        for(var i = 0; i < this.mapTempObjects.length; i++) {
+            if(this.mapTempObjects[i] === mapLayerObject) {
+                this.tempFiguresOnMap.removeLayer(this.mapTempObjects[i].layerObject)
+                this.mapTempObjects.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    clearObjectsFromBothMapAndTemp() {
+        this.mapTempObjects.forEach(element => {
+            this.tempFiguresOnMap.removeLayer(element.layerObject)
+        })
+        this.mapTempObjects = []
+    }
+
+    addObjectToBothMapAndCache(mapLayerObject) {
+        this.figuresOnMap.addLayer(mapLayerObject.layerObject)
+        this.mapObjects.push(mapLayerObject)
+    }
+
+    removeObjectFromBothMapAndCache(mapLayerObject) {
+        for(var i = 0; i < this.mapObjects.length; i++) {
+            if(this.mapObjects[i] === mapLayerObject) {
+                this.figuresOnMap.removeLayer(this.mapObjects[i].layerObject)
+                this.mapObjects.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    clearObjectsFromBothMapAndCache() {
+        this.mapObjects.forEach(element => {
+            this.figuresOnMap.removeLayer(element.layerObject)
+        })
+        this.mapObjects = []
+    }
+}
+
 class MapLayerObject {
     constructor(layerObject, mapStructure) {
         this.layerObject = layerObject
@@ -204,127 +325,6 @@ class Route extends MapLayerObject {
             end: this.end.mapToSendModel(),
             routeData: this.routeData
         }
-    }
-}
-
-class MapStructure {
-    constructor(map) {
-        this.map = map
-        this.mapState = MapStatesEnum.Algorithm
-        this.mapObjects = []
-        this.mapTempObjects = []
-        this.figuresOnMap = L.layerGroup([]).addTo(map)
-        this.tempFiguresOnMap = L.layerGroup([]).addTo(map)
-        this.greenIcon = new L.Icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        })
-        this.redIcon = new L.Icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        })
-        this.blackIcon = new L.Icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        })
-        this.blueIcon = new L.Icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        })
-
-        this.selectedRoute = null
-        this.adjustLayerZIndexes()
-    }
-
-    adjustLayerZIndexes() {
-        this.map.on('layeradd',function(event){
-           if (IndexZObjectKeepTypeMap.get("temp") == event.layer.ZIndex && event.layer instanceof L.Path)
-            event.layer.bringToFront()
-        });
-    }
-
-    setSelectedRoute(route) {
-        if (this.mapState != MapStatesEnum.Algorithm && this.mapState != MapStatesEnum.RouteEdit)
-            return
-
-        if (!route instanceof Route)
-            return
-
-        if (this.selectedRoute === route && this.mapState == MapStatesEnum.RouteEdit) {
-            this.selectedRoute = null
-            this.mapState = MapStatesEnum.Algorithm
-            return
-        }
-
-        this.mapState = MapStatesEnum.RouteEdit
-        this.selectedRoute = route
-    }
-
-
-    addObjectToBothMapAndTemp(mapLayerObject) {
-        this.tempFiguresOnMap.addLayer(mapLayerObject.layerObject)
-        this.mapTempObjects.push(mapLayerObject)
-    }
-
-    popObjectFromTempAndMap() {
-        var res = this.mapTempObjects.pop()
-        this.tempFiguresOnMap.removeLayer(res.layerObject)
-        return res
-    }
-
-    removeObjectFromBothMapAndTemp(mapLayerObject) {
-        for(var i = 0; i < this.mapTempObjects.length; i++) {
-            if(this.mapTempObjects[i] === mapLayerObject) {
-                this.tempFiguresOnMap.removeLayer(this.mapTempObjects[i].layerObject)
-                this.mapTempObjects.splice(i, 1);
-                break;
-            }
-        }
-    }
-
-    clearObjectsFromBothMapAndTemp() {
-        this.mapTempObjects.forEach(element => {
-            this.tempFiguresOnMap.removeLayer(element.layerObject)
-        })
-        this.mapTempObjects = []
-    }
-
-    addObjectToBothMapAndCache(mapLayerObject) {
-        this.figuresOnMap.addLayer(mapLayerObject.layerObject)
-        this.mapObjects.push(mapLayerObject)
-    }
-
-    removeObjectFromBothMapAndCache(mapLayerObject) {
-        for(var i = 0; i < this.mapObjects.length; i++) {
-            if(this.mapObjects[i] === mapLayerObject) {
-                this.figuresOnMap.removeLayer(this.mapObjects[i].layerObject)
-                this.mapObjects.splice(i, 1);
-                break;
-            }
-        }
-    }
-
-    clearObjectsFromBothMapAndCache() {
-        this.mapObjects.forEach(element => {
-            this.figuresOnMap.removeLayer(element.layerObject)
-        })
-        this.mapObjects = []
     }
 }
 

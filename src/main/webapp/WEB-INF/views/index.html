@@ -6,31 +6,34 @@
     <title>Index</title>
 </head>
 <body>
+  <link rel="stylesheet" href="/resources/lib/leaflet/leaflet.css"/>
+  <script src="/resources/lib/leaflet/leaflet.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <!-- версия для разработки, отображает полезные предупреждения в консоли -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
 
-<link rel="stylesheet" href="/resources/lib/leaflet/leaflet.css"/>
-<script src="/resources/lib/leaflet/leaflet.js"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <div id="app">
+      <div id="mapid" style="height: 640px"></div>
+      <br/>
+      <hr/>
 
-<div id="mapid" style="height: 640px"></div>
+      <button type="button" id="startButton" class="btn btn-primary" onclick="onPutRouteStart()">Указать начало</button>
+      <button type="button" id="endButton" class="btn btn-primary d-none" onclick="onPutRouteEnd()">Указать конец</button>
+      <button type="button" id="buildRoute" class="btn btn-primary " onclick="onBuildRoute()" >Построить маршрут</button>
 
-<br/>
-<hr/>
+      <br/>
+      <hr/>
 
-<button type="button" id="startButton" class="btn btn-primary" onclick="onPutRouteStart()">Указать начало</button>
-<button type="button" id="endButton" class="btn btn-primary d-none" onclick="onPutRouteEnd()">Указать конец</button>
-<button type="button" id="buildRoute" class="btn btn-primary " onclick="onBuildRoute()" >Построить маршрут</button>
+      <button type="button" id="updateRoutesButton" class="btn btn-primary " onclick="updateRoutesToDatabase()">Обновить имеющиеся на карте маршруты</button>
+      <button type="button" id="loadRoutesButton" class="btn btn-primary " onclick="loadRouteFromDatabase()">Загрузить маршруты из базы данных</button>
+      <button type="button" id="algorithmButton" class="btn btn-primary " onclick="startAlgorithm()">Перестроить маршруты по алгоритму</button>
+  </div>
 
-<br/>
-<hr/>
+  <script src="/resources/lib/custom/class/dto.js"></script>
+  <script src="/resources/lib/custom/mainMapScripts.js"></script>
+  <script src="/resources/lib/custom/app.js"></script>
 
-<button type="button" id="updateRoutesButton" class="btn btn-primary " onclick="updateRoutesToDatabase()">Обновить имеющиеся на карте маршруты</button>
-<button type="button" id="loadRoutesButton" class="btn btn-primary " onclick="loadRouteFromDatabase()">Загрузить маршруты из базы данных</button>
-<button type="button" id="algorithmButton" class="btn btn-primary " onclick="startAlgorithm()">Перестроить маршруты по алгоритму</button>
-
-<script src="/resources/lib/custom/class/dto.js"></script>
-<script src="/resources/lib/custom/mainMapScripts.js"></script>
-
-<div th:insert="~{footer :: copy}"></div>
+  <div th:insert="~{footer :: copy}"></div>
 
 </body>
 </html>
