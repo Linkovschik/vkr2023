@@ -1,3 +1,4 @@
+Vue.use(DatePicker.default);
 new Vue({
     el: '#app',
     components: {

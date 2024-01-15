@@ -10,20 +10,31 @@
   <script src="/resources/lib/leaflet/leaflet.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 
+  <script>
+      var config = {test: 1, dfg: 2}
+      console.log(config)
+  </script>
 
   <div id="app">
-      <section-content></section-content>
+      <section-content th:attr="'v-bind:config'=${point.toStr()}">
+      </section-content>
   </div>
 
   <script src="/resources/lib/custom/class/dto.js"></script>
+  <!--
   <script src="/resources/lib/custom/mainMapScripts.js"></script>
+  //-->
 
   <!-- версия для разработки, отображает полезные предупреждения в консоли -->
   <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.21.1/babel.min.js"></script>
+  <script src="https://unpkg.com/http-vue-loader"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue2-datepicker@1.9.7/dist/build.min.js"></script>
+  <script src="https://momentjs.com/downloads/moment.js"></script>
 
-  <script src="/resources/lib/custom/mainComp.js"></script>
-  <script src="/resources/lib/custom/app.js"></script>
+  <!--'some-component': httpVueLoader('./resources/assets/js/components/some.vue')-->
+ <script src="/resources/lib/custom/routeEditComp.js"></script>
+ <script src="/resources/lib/custom/mainComp.js"></script>
+ <script src="/resources/lib/custom/app.js"></script>
 </body>
 <div th:insert="~{footer :: copy}"></div>
 </html>

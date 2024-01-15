@@ -36,3 +36,4 @@ out/
 ### VS Code ###
 .vscode/
 /src/main/webapp/resources/lib/vue/vue.js
+/src/main/webapp/resources/lib/vue/build.min.js

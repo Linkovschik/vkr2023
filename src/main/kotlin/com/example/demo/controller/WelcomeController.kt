@@ -10,6 +10,7 @@ import com.example.demo.web.UpdateRoutesModel
 import com.google.gson.Gson
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Controller
+import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.io.File
 
@@ -30,7 +31,9 @@ class WelcomeController {
     private lateinit var defaultAlgorithm: DefaultAlgorithm
 
     @GetMapping("/welcome")
-    fun welcome(): String {
+    fun welcome(model: Model): String {
+        val point = MapPoint()
+        model.addAttribute("point", point);
         return "/index"
     }
 
