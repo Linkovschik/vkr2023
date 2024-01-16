@@ -12,6 +12,7 @@ var comp = {
      data() {
      return {
             map: null,
+            mapStatesEnum: MapStatesEnum,
             mapStructure: null,
             buildRouteTemp: null
         }
@@ -41,6 +42,7 @@ var comp = {
                         <button type="button" id="startButton" class="btn btn-primary" v-on:click="onPutRouteStart()">Указать начало</button>
                         <button type="button" id="endButton" class="btn btn-primary d-none" v-on:click="onPutRouteEnd()">Указать конец</button>
                         <button type="button" id="buildRoute" class="btn btn-primary " v-on:click="onBuildRoute()" >Построить маршрут</button>
+                        <button type="button" id="updateTempRoutesButton" class="btn btn-primary " v-on:click="updateTempRoutesToDatabase()">Добавить созданные маршруты к зафиксированным</button>
 
                         <br/>
                         <hr/>
@@ -49,8 +51,13 @@ var comp = {
                         <button type="button" id="loadRoutesButton" class="btn btn-primary " v-on:click="loadRouteFromDatabase()">Загрузить маршруты из базы данных</button>
                         <button type="button" id="algorithmButton" class="btn btn-primary " v-on:click="startAlgorithm()">Перестроить маршруты по алгоритму</button>
 
-                        <route-edit>
-                        </route-edit>
+                        <br />
+                        <hr/>
+
+                        <div v-if="mapStructure && mapStructure.selectedRoute && mapStructure.mapState == mapStatesEnum.RouteEdit">
+                            <route-edit :selectedRoute=mapStructure.selectedRoute>
+                            </route-edit>
+                        </div>
                     </div>`,
 
     computed: {
@@ -78,9 +85,14 @@ var comp = {
               key => MapStatesEnum[key] === val
             )
         },
+        updateTempRoutesToDatabase() {
+            var tempRoutes = this.mapStructure.mapTempObjects.filter(obj => obj instanceof Route)
+            this.mapStructure.mapObjects.push(...tempRoutes)
+        },
         updateRoutesToDatabase() {
 
-            var routeDataToSave = {routes: this.mapStructure.mapObjects.filter(obj => obj instanceof Route).map(obj => obj.routeData) }
+            var loadRoutes = this.mapStructure.mapObjects.filter(obj => obj instanceof Route).map(obj => obj.routeData)
+            var routeDataToSave = {routes: loadRoutes}
 
             var data = JSON.stringify(routeDataToSave);
             $.ajax({
