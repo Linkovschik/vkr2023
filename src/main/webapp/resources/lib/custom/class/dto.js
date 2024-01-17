@@ -292,7 +292,7 @@ class Route extends MapLayerObject {
         this.end.removeFromMap()
     }
 
-    removeFromMap() {
+    removeFromMapCache() {
         this.start.removeFromMapCache()
         super.removeFromMapCache()
         this.end.removeFromMapCache()
@@ -316,7 +316,7 @@ class Route extends MapLayerObject {
             return
 
         this.layerObject.setStyle({
-            color: 'red'
+            color: 'black'
         });
 
         this.start.addOnMapCache()

@@ -12,7 +12,7 @@ var routeEditComp = {
               formatLocale: {
                 firstDayOfWeek: 0,
               }
-            },
+            }
         }
     },
     mounted() {

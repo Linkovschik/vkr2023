@@ -1,24 +1,28 @@
 var comp = {
-     components: {
+    components: {
         'route-edit': routeEditComp
-     },
-     props: {
+    },
+    props: {
         config: {
-          type: Object,
-          required: false,
-          default: () => ({})
+            type: Object,
+            required: false,
+            default: () => ({})
         }
-     },
-     data() {
-     return {
+    },
+    data() {
+        return {
             map: null,
             mapStatesEnum: MapStatesEnum,
             mapStructure: null,
-            buildRouteTemp: null
+            buildRouteTemp: null,
+            unselectedRouteColor: "black",
+            selectedRouteColor: "red"
         }
     },
     mounted() {
-        this.map = L.map('mapid', { editable: true }).setView([54.7370888, 55.9555806], 15);
+        this.map = L.map('mapid', {
+            editable: true
+        }).setView([54.7370888, 55.9555806], 15);
         //привязка событий карты
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -34,121 +38,171 @@ var comp = {
         this.mapStructure = new MapStructure(this.map);
         this.buildRouteTemp = new BuildRouteTemp(this.mapStructure);
     },
-    template:`      <div>
-                        <div id="mapid" style="height: 640px"></div>
-                        <br/>
-                        <hr/>
+    template: `      <div>
+                       <div id="mapid" style="height: 640px"></div>
+                       <br/>
+                       <hr/>
 
-                        <button type="button" id="startButton" class="btn btn-primary" v-on:click="onPutRouteStart()">Указать начало</button>
-                        <button type="button" id="endButton" class="btn btn-primary d-none" v-on:click="onPutRouteEnd()">Указать конец</button>
-                        <button type="button" id="buildRoute" class="btn btn-primary " v-on:click="onBuildRoute()" >Построить маршрут</button>
-                        <button type="button" id="updateTempRoutesButton" class="btn btn-primary " v-on:click="updateTempRoutesToDatabase()">Добавить созданные маршруты к зафиксированным</button>
+                       <button type="button" id="startButton" class="btn btn-primary" v-on:click="onPutRouteStart()">Указать начало</button>
+                       <button type="button" id="endButton" class="btn btn-primary d-none" v-on:click="onPutRouteEnd()">Указать конец</button>
+                       <button type="button" id="buildRoute" class="btn btn-primary " v-on:click="onBuildRoute()" >Построить маршрут</button>
+                       <button type="button" id="updateTempRoutesButton" class="btn btn-primary " v-on:click="updateTempRoutesToDatabase()">Добавить созданные маршруты к зафиксированным</button>
+                       <button type="button" id="clearTemp" class="btn btn-primary " v-on:click="clearTempObjects()">Убрать несохранённые объекты</button>
+                       <button type="button" id="clearCache" class="btn btn-primary " v-on:click="clearCacheObjects()">Убрать загруженные объекты</button>
 
-                        <br/>
-                        <hr/>
+                       <br/>
+                       <hr/>
 
-                        <button type="button" id="updateRoutesButton" class="btn btn-primary " v-on:click="updateRoutesToDatabase()">Обновить имеющиеся на карте маршруты</button>
-                        <button type="button" id="loadRoutesButton" class="btn btn-primary " v-on:click="loadRouteFromDatabase()">Загрузить маршруты из базы данных</button>
-                        <button type="button" id="algorithmButton" class="btn btn-primary " v-on:click="startAlgorithm()">Перестроить маршруты по алгоритму</button>
+                       <button type="button" id="updateRoutesButton" class="btn btn-primary " v-on:click="updateRoutesToDatabase()">Обновить имеющиеся на карте маршруты</button>
+                       <button type="button" id="loadRoutesButton" class="btn btn-primary " v-on:click="loadRouteFromDatabase()">Загрузить маршруты из базы данных</button>
+                       <button type="button" id="algorithmButton" class="btn btn-primary " v-on:click="startAlgorithm()">Перестроить маршруты по алгоритму</button>
 
-                        <br />
-                        <hr/>
+                       <br />
+                       <hr/>
 
-                        <div v-if="mapStructure && mapStructure.selectedRoute && mapStructure.mapState == mapStatesEnum.RouteEdit">
-                            <route-edit :selectedRoute=mapStructure.selectedRoute>
-                            </route-edit>
-                        </div>
-                    </div>`,
+                       <div v-if="mapStructure && mapStructure.selectedRoute && mapStructure.mapState == mapStatesEnum.RouteEdit">
+                           <route-edit :selectedRoute=mapStructure.selectedRoute>
+                           </route-edit>
+                       </div>
+                   </div>`,
 
     computed: {
-      mapState() {
-        if (!this.mapStructure)
-            return null
-        return this.mapStructure.mapState
-      },
-      mapStateKey() {
-        if (!this.mapStructure)
-            return null
-        return this.getMapStateEnumKeyByValue(this.mapStructure.mapState)
-      }
+        mapState() {
+            if (!this.mapStructure)
+                return null
+            return this.mapStructure.mapState
+        },
+        mapStateKey() {
+            if (!this.mapStructure)
+                return null
+            return this.getMapStateEnumKeyByValue(this.mapStructure.mapState)
+        },
+        selectedRoute() {
+            if (!this.mapStructure)
+                return null
+            return this.mapStructure.selectedRoute;
+        }
     },
     watch: {
-      mapState(val) {
-        if(!this.mapStateKey)
-            return
-        console.log('Map state changed to: ' + this.mapStateKey)
-      }
+        mapState: function(newState, oldState) {
+            if (!newState && newState != 0)
+                return
+
+            console.log('Map state changed to: ' + newState)
+
+            if (oldState == this.mapStatesEnum.RouteEdit && this.selectedRoute) {
+                this.mapStructure.selectedRoute = null
+            }
+        },
+        selectedRoute: function(newVal, oldVal) {
+            if (oldVal) {
+                this.restoreSelectedRouteStyle(oldVal)
+            }
+            if (newVal) {
+                this.unselectedRouteColor = newVal.layerObject.options.color
+                this.setSelectedRouteStyle(newVal)
+            }
+        }
     },
     methods: {
+        setSelectedRouteStyle(route) {
+            var selectedRouteColor = this.selectedRouteColor
+            route.layerObject.setStyle({
+                color: selectedRouteColor
+            });
+        },
+        restoreSelectedRouteStyle(route) {
+            var unselectedColor = this.unselectedRouteColor
+            route.layerObject.setStyle({
+                color: unselectedColor
+            });
+        },
         getMapStateEnumKeyByValue(val) {
             return Object.keys(MapStatesEnum).find(
-              key => MapStatesEnum[key] === val
+                key => MapStatesEnum[key] === val
             )
         },
         updateTempRoutesToDatabase() {
             var tempRoutes = this.mapStructure.mapTempObjects.filter(obj => obj instanceof Route)
-            this.mapStructure.mapObjects.push(...tempRoutes)
+            var mapStructure = this.mapStructure
+            tempRoutes.forEach((tempRoute) => tempRoute.removeFromMap(tempRoute))
+            tempRoutes.forEach((tempRoute) => tempRoute.addOnMapCache(tempRoute))
+        },
+        clearCacheObjects() {
+            var mapStructure = this.mapStructure
+            mapStructure.clearObjectsFromBothMapAndCache()
+        },
+        clearTempObjects() {
+            var mapStructure = this.mapStructure
+            mapStructure.clearObjectsFromBothMapAndTemp()
         },
         updateRoutesToDatabase() {
 
             var loadRoutes = this.mapStructure.mapObjects.filter(obj => obj instanceof Route).map(obj => obj.routeData)
-            var routeDataToSave = {routes: loadRoutes}
+            var routeDataToSave = {
+                routes: loadRoutes
+            }
 
             var data = JSON.stringify(routeDataToSave);
             $.ajax({
-                url: '/home/updateRoutes',
-                method: 'post',
-                dataType: 'json',
-                data: data,
-                contentType: 'application/json; charset=utf-8',
-                async: false,
-            })
-            .fail(function (jqxhr, textStatus, error) {
-                var err = textStatus + ', ' + error;
-            })
+                    url: '/home/updateRoutes',
+                    method: 'post',
+                    dataType: 'json',
+                    data: data,
+                    contentType: 'application/json; charset=utf-8',
+                    async: false,
+                })
+                .fail(function(jqxhr, textStatus, error) {
+                    var err = textStatus + ', ' + error;
+                })
         },
         loadRouteFromDatabase() {
             var mapStructure = this.mapStructure
             mapStructure.clearObjectsFromBothMapAndCache()
             $.getJSON({
-                url: '/home/loadRoutes',
-                async: false
-            })
-            .done(function (routeDataList) {
-                routeDataList.forEach((routeData) => {
-                    var route = new Route(routeData, mapStructure)
-                    route.addOnMapCache()
-                });
-            })
-            .fail(function (jqxhr, textStatus, error) {
-                var err = textStatus + ', ' + error;
-            })
+                    url: '/home/loadRoutes',
+                    async: false
+                })
+                .done(function(routeDataList) {
+                    routeDataList.forEach((routeData) => {
+                        var route = new Route(routeData, mapStructure)
+                        route.addOnMapCache()
+                    });
+                })
+                .fail(function(jqxhr, textStatus, error) {
+                    var err = textStatus + ', ' + error;
+                })
         },
         buildRoute(routeStart, routeEnd) {
             var route = null
 
             var routeBuildData = {
-                start: {lng: routeStart.lng, lat: routeStart.lat},
-                end: {lng: routeEnd.lng, lat: routeEnd.lat},
+                start: {
+                    lng: routeStart.lng,
+                    lat: routeStart.lat
+                },
+                end: {
+                    lng: routeEnd.lng,
+                    lat: routeEnd.lat
+                },
             }
 
             var data = JSON.stringify(routeBuildData);
             $.ajax({
-                url: '/home/buildRoute',
-                method: 'post',
-                dataType: 'json',
-                data: data,
-                contentType: 'application/json; charset=utf-8',
-                async: false,
-            })
-            .done(function (routeData) {
-                route = routeData
-            })
-            .fail(function (jqxhr, textStatus, error) {
-                var err = textStatus + ', ' + error;
-                console.log(err)
-            })
-
+                    url: '/home/buildRoute',
+                    method: 'post',
+                    dataType: 'json',
+                    data: data,
+                    contentType: 'application/json; charset=utf-8',
+                    async: false,
+                })
+                .done(function(routeData) {
+                    route = routeData
+                })
+                .fail(function(jqxhr, textStatus, error) {
+                    var err = textStatus + ', ' + error;
+                    console.log(err)
+                })
 
             return route
         },
@@ -196,27 +250,29 @@ var comp = {
         },
         startAlgorithm() {
             console.log("Маршруты перестраиваются")
-            var routeDataToSave = {routes: this.mapStructure.mapObjects.filter(obj => obj instanceof Route).map(obj => obj.routeData) }
+            var routeDataToSave = {
+                routes: this.mapStructure.mapObjects.filter(obj => obj instanceof Route).map(obj => obj.routeData)
+            }
             var mapStructure = this.mapStructure
             var data = JSON.stringify(routeDataToSave);
             $.ajax({
-                url: '/home/startAlgorithm',
-                method: 'post',
-                dataType: 'json',
-                data: data,
-                contentType: 'application/json; charset=utf-8',
-                async: false,
-            })
-            .done(function (routeDataList) {
-                mapStructure.clearObjectsFromBothMapAndCache()
-                routeDataList.forEach((routeData) => {
-                    var route = new Route(routeData, mapStructure)
-                    route.addOnMap()
-                });
-            })
-            .fail(function (jqxhr, textStatus, error) {
-                var err = textStatus + ', ' + error;
-            })
+                    url: '/home/startAlgorithm',
+                    method: 'post',
+                    dataType: 'json',
+                    data: data,
+                    contentType: 'application/json; charset=utf-8',
+                    async: false,
+                })
+                .done(function(routeDataList) {
+                    mapStructure.clearObjectsFromBothMapAndCache()
+                    routeDataList.forEach((routeData) => {
+                        var route = new Route(routeData, mapStructure)
+                        route.addOnMap()
+                    });
+                })
+                .fail(function(jqxhr, textStatus, error) {
+                    var err = textStatus + ', ' + error;
+                })
         }
     }
 };
