@@ -81,6 +81,16 @@ var comp = {
             if (!this.mapStructure)
                 return null
             return this.mapStructure.selectedRoute;
+        },
+        mapTempObjects() {
+            if (!this.mapStructure)
+                return null
+            return this.mapStructure.mapTempObjects;
+        },
+        mapCacheObjects() {
+            if (!this.mapStructure)
+                return null
+            return this.mapStructure.mapObjects;
         }
     },
     watch: {
@@ -101,6 +111,16 @@ var comp = {
             if (newVal) {
                 this.unselectedRouteColor = newVal.layerObject.options.color
                 this.setSelectedRouteStyle(newVal)
+            }
+        },
+        mapTempObjects: function(newVal, oldVal) {
+            if (oldVal && oldVal.includes(this.selectedRoute) && newVal && !newVal.includes(this.selectedRoute)) {
+                this.mapStructure.selectedRoute = null
+            }
+        },
+        mapCacheObjects: function(newVal, oldVal) {
+            if (oldVal && oldVal.includes(this.selectedRoute) && newVal && !newVal.includes(this.selectedRoute)) {
+                this.mapStructure.selectedRoute = null
             }
         }
     },
