@@ -3,6 +3,7 @@ package com.example.demo.geojson.model
 import com.example.demo.algorithm.model.MapPoint
 import java.time.LocalDateTime
 import java.util.Date
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
 private val count: AtomicInteger = AtomicInteger(1)
@@ -18,7 +19,7 @@ data class Route (
         var startTimeMax: Date? = null,
         var endTimeMin: Date? = null,
         var endTimeMax: Date? = null,
-        val id: Int = count.incrementAndGet()
+        var name: String? = UUID.randomUUID().toString()
 ) {
 
 }

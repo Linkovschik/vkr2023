@@ -276,10 +276,6 @@ class Route extends MapLayerObject {
         this.start.addParent(this)
         this.end.addParent(this)
 
-        this.startTimeMin = null
-        this.startTimeMax = null
-        this.endTimeMin = null
-        this.endTimeMax = null
     }
 
     markAsSelected() {
