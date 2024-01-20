@@ -217,7 +217,10 @@ var comp = {
                     async: false,
                 })
                 .done(function(routeData) {
-                    route = routeData
+                    if (!routeData.length)
+                        throw new Error("Built route is undefiend or null")
+                    route = routeData[0]
+
                 })
                 .fail(function(jqxhr, textStatus, error) {
                     var err = textStatus + ', ' + error;

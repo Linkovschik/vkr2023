@@ -46,22 +46,19 @@ class WelcomeController {
 
     @PostMapping("/buildRoute")
     @ResponseBody
-    fun buildRoute(@RequestBody routeBuildModel: RouteBuildModel): Route {
-        var route = Route(emptyList(), emptyList(), 0.0, 0.0, MapPoint(0.0, 0.0), MapPoint(0.0, 0.0))
-
-        if (routeBuildModel == null)
-            return route
+    fun buildRoute(@RequestBody routeBuildModel: RouteBuildModel): List<Route> {
+        val routeResult = arrayListOf<Route>()
 
         val featureCollection = drivingService.getGeoJsonRoute(
                 routeBuildModel.start.convertToArray(),
                 routeBuildModel.end.convertToArray(),
                 emptyList()
-        ) ?: return route
+        ) ?: return routeResult
 
+        val route = mappingService.mapFeatureToRoute(featureCollection.features.first())
+        routeResult.add(route)
 
-        route = mappingService.mapFeatureToRoute(featureCollection.features.first())
-
-        return route
+        return routeResult
     }
 
     @PostMapping("/updateRoutes")
