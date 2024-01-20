@@ -145,8 +145,14 @@ var comp = {
         updateTempRoutesToDatabase() {
             var tempRoutes = this.mapStructure.mapTempObjects.filter(obj => obj instanceof Route)
             var mapStructure = this.mapStructure
+
             tempRoutes.forEach((tempRoute) => tempRoute.removeFromMap(tempRoute))
             tempRoutes.forEach((tempRoute) => tempRoute.addOnMapCache(tempRoute))
+
+            if (tempRoutes.includes(this.selectedRoute)) {
+                this.unselectedRouteColor = this.selectedRoute.layerObject.options.color
+                this.mapStructure.selectedRoute = null
+            }
         },
         clearCacheObjects() {
             var mapStructure = this.mapStructure
@@ -166,7 +172,7 @@ var comp = {
             var data = JSON.stringify(routeDataToSave);
             $.ajax({
                     url: '/home/updateRoutes',
-                    method: 'post',
+                    method: 'put',
                     dataType: 'json',
                     data: data,
                     contentType: 'application/json; charset=utf-8',

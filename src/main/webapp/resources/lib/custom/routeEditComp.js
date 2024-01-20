@@ -31,17 +31,17 @@ var routeEditComp = {
                         <label>Примерное время начала маршрута</label>
                         <div>
                             <label>C</label>
-                            <date-picker v-model="selectedRoute.routeData.startTimeMin" lang="en" :firstDayOfWeek=1  type="datetime" :format="'DD-MM-YYYY HH:mm'" :confirm="true" :show-second="false"></date-picker>
+                            <input type="time" v-model="selectedRoute.routeData.startTimeMin" min="06:00:00" max="10:00:00" step="2"/>
                             <label>по</label>
-                            <date-picker v-model="selectedRoute.routeData.startTimeMax" lang="en" :firstDayOfWeek=1  type="datetime" :format="'DD-MM-YYYY HH:mm'" :confirm="true" :show-second="false"></date-picker>
+                            <input type="time" v-model="selectedRoute.routeData.startTimeMax" min="06:00:00" max="10:00:00" step="2"/>
                         </div>
                         <br />
                         <label>Примерное время окончания маршрута</label>
                         <div>
                             <label>C</label>
-                            <date-picker v-model="selectedRoute.routeData.endTimeMin" lang="en" :firstDayOfWeek=1  type="datetime" :format="'DD-MM-YYYY HH:mm'" :confirm="true" :show-second="false"></date-picker>
+                            <input type="time" v-model="selectedRoute.routeData.endTimeMin" min="06:00:00" max="10:00:00" step="2"/>
                             <label>по</label>
-                            <date-picker v-model="selectedRoute.routeData.endTimeMax" lang="en" :firstDayOfWeek=1  type="datetime" :format="'DD-MM-YYYY HH:mm'" :confirm="true" :show-second="false"></date-picker>
+                            <input type="time" v-model="selectedRoute.routeData.endTimeMax" min="06:00:00" max="10:00:00" step="2"/>
                         </div>
                     </div>`,
 
@@ -59,22 +59,27 @@ var routeEditComp = {
         startTimeMin() {
             if (!this.selectedRoute.routeData)
                 throw new Error("Selected route has no route data!")
-            return this.selectedRoute.routeData.startTimeMin
+
+            var dateTime = new Date(moment().format('YYYY-MM-DD') + ' ' + this.selectedRoute.routeData.startTimeMin)
+            return dateTime
         },
         startTimeMax() {
             if (!this.selectedRoute.routeData)
                 throw new Error("Selected route has no route data!")
-            return this.selectedRoute.routeData.startTimeMax
+            var dateTime = new Date(moment().format('YYYY-MM-DD') + ' ' + this.selectedRoute.routeData.startTimeMax)
+            return dateTime
         },
         endTimeMin() {
             if (!this.selectedRoute.routeData)
                 throw new Error("Selected route has no route data!")
-            return this.selectedRoute.routeData.endTimeMin
+            var dateTime = new Date(moment().format('YYYY-MM-DD') + ' ' + this.selectedRoute.routeData.endTimeMin)
+            return dateTime
         },
         endTimeMax() {
             if (!this.selectedRoute.routeData)
                 throw new Error("Selected route has no route data!")
-            return this.selectedRoute.routeData.endTimeMax
+            var dateTime = new Date(moment().format('YYYY-MM-DD') + ' ' + this.selectedRoute.routeData.endTimeMax)
+            return dateTime
         }
     },
     watch: {
@@ -89,7 +94,7 @@ var routeEditComp = {
                 console.log("Установим минимальное возможный утренний час для времени начала маршрута")
                 var min = this.startTimeMin
                 min.setHours(this.morningStartHour)
-                this.selectedRoute.routeData.startTimeMin = min
+                this.selectedRoute.routeData.startTimeMin = this.getFormattedTime(min)
             }
 
             this.selectedRoute.routeData.startTimeMax = null
@@ -106,15 +111,15 @@ var routeEditComp = {
             }
 
             if (this.startTimeMin && this.startTimeMax < this.startTimeMin) {
-                this.selectedRoute.routeData.startTimeMax = moment(this.startTimeMin).toDate()
+                this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(moment(this.startTimeMin).toDate())
             }
 
             if (this.endTimeMax && this.startTimeMax > this.endTimeMax) {
-                this.selectedRoute.routeData.startTimeMax = moment(this.endTimeMax).toDate()
+                this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(moment(this.endTimeMax).toDate())
             }
 
             if (this.maxDurationInHours < this.getDurationInHours(this.startTimeMin, this.startTimeMax)) {
-                this.selectedRoute.routeData.startTimeMax = this.addHours(this.startTimeMin, this.maxDurationInHours)
+                this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(this.addHours(this.startTimeMin, this.maxDurationInHours))
             }
         },
         endTimeMin() {
@@ -132,11 +137,11 @@ var routeEditComp = {
             }
 
             if (this.startTimeMin && this.endTimeMin < this.startTimeMin) {
-                this.selectedRoute.routeData.endTimeMin = moment(this.startTimeMin).toDate()
+                this.selectedRoute.routeData.endTimeMin = this.getFormattedTime(moment(this.startTimeMin).toDate())
             }
 
             if (this.endTimeMax && this.endTimeMin > this.endTimeMax) {
-                this.selectedRoute.routeData.endTimeMin = moment(this.endTimeMax).toDate()
+                this.selectedRoute.routeData.endTimeMin = this.getFormattedTime(moment(this.endTimeMax).toDate())
             }
         },
         endTimeMax() {
@@ -147,16 +152,16 @@ var routeEditComp = {
                 console.log("Установим максимально возможный вечерний час для времени окончания маршрута")
                 var max = this.endTimeMax
                 max.setHours(this.eveningEndHour)
-                this.selectedRoute.routeData.endTimeMax = max
+                this.selectedRoute.routeData.endTimeMax = this.getFormattedTime(max)
             }
 
             if (this.startTimeMin && this.startTimeMin >= this.endTimeMax) {
                 console.log("Установим окончание маршрута с разницей в 30 минут")
-                this.selectedRoute.routeData.endTimeMax = moment(this.startTimeMin).add(30, 'm').toDate()
+                this.selectedRoute.routeData.endTimeMax = this.getFormattedTime(moment(this.startTimeMin).add(30, 'm').toDate())
             }
 
             if (this.startTimeMin && this.maxDurationInHours < this.getDurationInHours(this.startTimeMin, this.endTimeMax)) {
-                this.selectedRoute.routeData.endTimeMax = this.addHours(this.startTimeMin, this.maxDurationInHours)
+                this.selectedRoute.routeData.endTimeMax = this.getFormattedTime(this.addHours(this.startTimeMin, this.maxDurationInHours))
             }
 
             this.selectedRoute.routeData.endTimeMin = null
@@ -179,6 +184,9 @@ var routeEditComp = {
         },
         subtractHours(date, hours) {
             return moment(date).subtract(hours, 'hours').toDate()
+        },
+        getFormattedTime(date) {
+            return moment(date).format('HH:mm:ss')
         }
     }
 };

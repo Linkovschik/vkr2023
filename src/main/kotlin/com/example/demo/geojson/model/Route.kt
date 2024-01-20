@@ -1,8 +1,7 @@
 package com.example.demo.geojson.model
 
 import com.example.demo.algorithm.model.MapPoint
-import java.time.LocalDateTime
-import java.util.Date
+import java.sql.Time
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -15,10 +14,10 @@ data class Route (
         val duration: Double,
         val start: MapPoint,
         val end: MapPoint,
-        var startTimeMin: Date? = null,
-        var startTimeMax: Date? = null,
-        var endTimeMin: Date? = null,
-        var endTimeMax: Date? = null,
+        var startTimeMin: Time? = null,
+        var startTimeMax: Time? = null,
+        var endTimeMin: Time? = null,
+        var endTimeMax: Time? = null,
         var name: String? = UUID.randomUUID().toString()
 ) {
 

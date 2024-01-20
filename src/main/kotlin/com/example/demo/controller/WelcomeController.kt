@@ -61,11 +61,12 @@ class WelcomeController {
         return routeResult
     }
 
-    @PostMapping("/updateRoutes")
+    @PutMapping("/updateRoutes")
     fun updateRoutes(@RequestBody updateRoutesModel: UpdateRoutesModel) {
         routeTable.clear()
         routeTable.addAll(updateRoutesModel.routes)
         writeRoutesToFile(updateRoutesModel)
+        return
     }
 
     @GetMapping("/loadRoutes")
@@ -78,17 +79,19 @@ class WelcomeController {
     }
 
     private fun writeRoutesToFile(updateRoutesModel: UpdateRoutesModel,
-                                  filePath: String = "D:\\projects\\demo\\fakeDB\\fakeDB.txt") {
+                                  filePath: String = "D:\\VKR\\project\\fakeDB\\fakeDB.txt") {
         val gson = Gson()
         val jsonString: String = gson.toJson(updateRoutesModel)
         val file = File(filePath)
         file.writeText(jsonString)
     }
 
-    private fun readRoutesFromFile(filePath: String = "D:\\projects\\demo\\fakeDB\\fakeDB.txt"): UpdateRoutesModel {
+    private fun readRoutesFromFile(filePath: String = "D:\\VKR\\project\\fakeDB\\fakeDB.txt"): UpdateRoutesModel {
         val gson = Gson()
         val file = File(filePath)
         val result = file.readText()
+        if (result.isBlank())
+            return UpdateRoutesModel()
         return gson.fromJson(result, UpdateRoutesModel::class.java)
     }
 }
