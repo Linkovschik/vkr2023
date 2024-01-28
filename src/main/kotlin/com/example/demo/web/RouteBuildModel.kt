@@ -1,5 +1,5 @@
 package com.example.demo.web
 
-import com.example.demo.algorithm.model.MapPoint
+import com.example.demo.geojson.model.MyPoint
 
-data class RouteBuildModel(var start: MapPoint = MapPoint(), var end: MapPoint = MapPoint())
+data class RouteBuildModel(var start: MyPoint = MyPoint(), var end: MyPoint = MyPoint())

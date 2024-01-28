@@ -6,7 +6,7 @@ import com.example.demo.geojson.dto.Step
 import com.example.demo.geojson.model.Route
 import com.example.demo.geojson.model.RouteSegment
 import com.example.demo.geojson.model.RouteSegmentStep
-import com.example.demo.algorithm.model.MapPoint
+import com.example.demo.geojson.model.MyPoint
 import org.springframework.stereotype.Component
 
 @Component
@@ -18,11 +18,11 @@ class MappingService {
 
         return Route(
                 properties.segments.map { mapSegment(it, routeCoordinates) },
-                routeCoordinates.map { MapPoint(it.first(), it.last()) },
+                routeCoordinates.map { MyPoint(it.first(), it.last()) },
                 properties.summary.distance,
                 properties.summary.duration,
-                MapPoint(routeCoordinates[properties.way_points.first().toInt()].first(), routeCoordinates[properties.way_points.first().toInt()].last()),
-                MapPoint(routeCoordinates[properties.way_points.last().toInt()].first(), routeCoordinates[properties.way_points.last().toInt()].last())
+                MyPoint(routeCoordinates[properties.way_points.first().toInt()].first(), routeCoordinates[properties.way_points.first().toInt()].last()),
+                MyPoint(routeCoordinates[properties.way_points.last().toInt()].first(), routeCoordinates[properties.way_points.last().toInt()].last())
         )
     }
 
@@ -41,8 +41,8 @@ class MappingService {
                 step.type,
                 step.instruction,
                 step.name,
-                MapPoint(routeCoordinates[step.way_points.first().toInt()].first(), routeCoordinates[step.way_points.first().toInt()].last()),
-                MapPoint(routeCoordinates[step.way_points.last().toInt()].first(), routeCoordinates[step.way_points.last().toInt()].last())
+                MyPoint(routeCoordinates[step.way_points.first().toInt()].first(), routeCoordinates[step.way_points.first().toInt()].last()),
+                MyPoint(routeCoordinates[step.way_points.last().toInt()].first(), routeCoordinates[step.way_points.last().toInt()].last())
         )
     }
 }

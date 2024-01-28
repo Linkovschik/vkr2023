@@ -1,8 +1,8 @@
-package com.example.demo.algorithm.model
+package com.example.demo.geojson.model
 
 import com.google.gson.Gson
 
-class MapPoint(val lng: Double = 0.0, val lat: Double = 0.0) {
+data class MyPoint(val lng: Double = 0.0, val lat: Double = 0.0) {
     fun convertToArray() : ArrayList<Double> {
         return arrayListOf(lng, lat)
     }

@@ -35,6 +35,7 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	//implementation("org.webjars.npm:geoman-io__leaflet-geoman-free:2.11.4")
+	implementation("io.github.piruin:geok:1.2.2")
 }
 
 tasks.withType<KotlinCompile> {
