@@ -6,6 +6,6 @@ class MapRouteDecision(
     mapRoute: MapRoute,
     val avgCongestion: BigDecimal,
     val startTimeInMinutes: Int = mapRoute.maxStartTimeInMinutesOfDay,
-    var endTimeInMinutes: Int = mapRoute.minEndTimeInMinutesOfDay,
-) : MapRoute(mapRoute) {
-}
+    val endTimeInMinutes: Int = mapRoute.minEndTimeInMinutesOfDay,
+    val rankDegree: Double = 1.0,
+) : MapRoute(mapRoute)

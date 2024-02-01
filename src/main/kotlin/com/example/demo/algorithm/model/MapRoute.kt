@@ -6,8 +6,7 @@ import kotlin.math.round
 
 open class MapRoute(
     val routeData: Route,
-    val visitedSquares: MutableList<MapSquare> = arrayListOf(),
-    val rankDegree: Double = 1.0
+    val visitedSquares: MutableList<MapSquare> = arrayListOf()
 ) {
 
     val minStartTimeInMinutesOfDay: Int = convertTimeToDayMinutes(routeData.startTimeMin)

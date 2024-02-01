@@ -8,10 +8,10 @@ import kotlin.math.min
 import kotlin.random.Random
 
 class MapRouteController(
-    val mapRoute: MapRoute,
-    val mapCongestionService: MapCongestionService,
-    val mapMatrixController: MapMatrixController,
-) : MapRoute(mapRoute) {
+    private val mapRoute: MapRoute,
+    private val mapCongestionService: MapCongestionService,
+    private val mapMatrixData: MapMatrixData,
+) {
     fun selectStartTime(): Int {
         return selectTimeInMinutes(mapRoute.minStartTimeInMinutesOfDay, mapRoute.maxStartTimeInMinutesOfDay)
     }
@@ -44,14 +44,10 @@ class MapRouteController(
         val calculatedCongestion =
             mapCongestionService.calcAvgCongestion(arrayListOf(square), startTimeInMinutes, endTimeInMinutes)
 
-        val calculatedProbability = min(1.0, calculatedCongestion.divide(mapMatrixController.maxCongestion).toDouble())
-        val avgProbability = mapMatrixController.mediumCongestion.divide(mapMatrixController.maxCongestion).toDouble()
+        val calculatedProbability = min(1.0, calculatedCongestion.divide(mapMatrixData.getMaxCongestion()).toDouble())
+        val avgProbability = mapMatrixData.getAvgCongestion().divide(mapMatrixData.getMaxCongestion()).toDouble()
 
         return (calculatedProbability + avgProbability) / 2.0
-    }
-
-    fun decreaseRankDegree(decreaseRankDegreeCoefficient: Double) {
-        mapRoute.rankDegree * min(decreaseRankDegreeCoefficient, 0.95)
     }
 
     fun addVisitSquare(square: MapSquare) {

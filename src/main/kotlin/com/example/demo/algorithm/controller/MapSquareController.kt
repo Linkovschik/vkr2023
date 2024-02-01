@@ -2,12 +2,13 @@ package com.example.demo.algorithm.controller
 
 import com.example.demo.geojson.model.MyPoint
 import com.example.demo.algorithm.model.MapRoute
+import com.example.demo.algorithm.model.MapRouteDecision
 import com.example.demo.algorithm.model.MapSquare
 import me.piruin.geok.geometry.LineString
 import me.piruin.geok.geometry.Polygon
 import java.math.BigDecimal
 
-class MapSquareController(val mapSquare: MapSquare) : MapSquare(mapSquare) {
+class MapSquareController(private val mapSquare: MapSquare) {
 
     fun intersect(point: MyPoint): Boolean {
         return point.lng > mapSquare.botLeft.lng &&
@@ -24,11 +25,9 @@ class MapSquareController(val mapSquare: MapSquare) : MapSquare(mapSquare) {
         return mapSquare.polygon.bbox.intersectWith(line.bbox)
     }
 
-
     fun notIntersect(point: MyPoint): Boolean {
         return !intersect(point)
     }
-
 
     fun convertToArray(): ArrayList<ArrayList<Double>> {
         return arrayListOf(
@@ -44,8 +43,15 @@ class MapSquareController(val mapSquare: MapSquare) : MapSquare(mapSquare) {
         mapSquare.visitedRoutes.add(route)
     }
 
-    fun calcCongestion(timeInMinutesOfDay: Int) : BigDecimal {
-        return BigDecimal.ZERO sdfsdfdsfsdfdsfdf
+    fun calcCongestion(timeInMinutesOfDay: Int): BigDecimal {
+        var result = BigDecimal.ZERO
+
+        val visitedRouteDecisions = mapSquare.visitedRoutes.filterIsInstance<MapRouteDecision>()
+        for (visitedRoute in visitedRouteDecisions) {
+            result += BigDecimal(visitedRoute.routeData.distance / (visitedRoute.durationTimeInMinutesOfDay))
+        }
+
+        return result / BigDecimal(visitedRouteDecisions.size)
     }
 
     fun clear() {

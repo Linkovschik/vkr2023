@@ -7,20 +7,37 @@ import com.example.demo.geojson.model.MyPoint
 import me.piruin.geok.geometry.LineString
 import java.math.BigDecimal
 
-class MapMatrixController(
-    val mapSquares: List<MapSquare>,
+class MapMatrixController (
+    private val mapSquares: List<MapSquare>,
     private val mapCongestionService: MapCongestionService
-) {
+) : MapMatrixData {
 
-    var maxCongestion: BigDecimal = mapCongestionService.calcMaxCongestion(mapSquares)
-    var mediumCongestion: BigDecimal = mapCongestionService.calcAvgCongestion(mapSquares)
+    private var maxCongestion: BigDecimal = mapCongestionService.calcMaxCongestion(mapSquares)
+    private var mediumCongestion: BigDecimal = mapCongestionService.calcAvgCongestion(mapSquares)
+    private var minCongestion: BigDecimal = mapCongestionService.calcMinCongestion(mapSquares)
 
-    fun updateMatrixState(routes: List<MapRoute>) {
-        clearSquares()
+    override fun updateMatrixState(routes: List<MapRoute>) {
+        clearState()
         routes.forEach { makeRouteVisitSquares(it) }
     }
 
-    fun makeRouteVisitSquares(route: MapRoute) {
+    override fun getMaxCongestion(): BigDecimal {
+        return maxCongestion
+    }
+
+    override fun getMinCongestion(): BigDecimal {
+       return minCongestion
+    }
+
+    override fun getAvgCongestion(): BigDecimal {
+        return mediumCongestion
+    }
+
+    private fun clearState() {
+        mapSquares.forEach { MapSquareController(it).clear() }
+    }
+
+    private fun makeRouteVisitSquares(route: MapRoute) {
         val mapRouteController = MapRouteController(route, mapCongestionService, this)
         mapRouteController.clear()
 
@@ -38,10 +55,6 @@ class MapMatrixController(
             }
             currentSquares = nextSquares.toMutableList()
         }
-    }
-
-    fun clearSquares() {
-        mapSquares.forEach { MapSquareController(it).clear() }
     }
 
     private fun getLineStringArray(mapPoints: List<MyPoint>): List<LineString> {

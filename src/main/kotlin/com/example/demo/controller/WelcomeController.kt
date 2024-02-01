@@ -1,6 +1,7 @@
 package com.example.demo.controller
 
 import com.example.demo.algorithm.DefaultAlgorithm
+import com.example.demo.algorithm.model.MapRoute
 import com.example.demo.geojson.model.MyPoint
 import com.example.demo.geojson.model.Route
 import com.example.demo.geojson.service.MappingService
@@ -41,8 +42,8 @@ class WelcomeController {
     @ResponseBody
     fun startAlgorithm(@RequestBody updateRoutesModel: UpdateRoutesModel): List<Route> {
 
-        val result = defaultAlgorithm.rebuildRoutes(updateRoutesModel.routes, updateRoutesModel.routes)
-        return result.toMutableList()
+        val result = defaultAlgorithm.rebuildRoutes(updateRoutesModel.routes.map{ MapRoute(it)})
+        return result.map { it.routeData }.toMutableList()
 
     }
 

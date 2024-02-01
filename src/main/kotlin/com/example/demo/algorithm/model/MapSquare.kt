@@ -25,4 +25,14 @@ open class MapSquare(val botLeft: MyPoint,
         LatLng(topRight.lat, topRight.lng),
         LatLng(topLeft.lat, topLeft.lng)
     )
+
+    fun convertToArray(): ArrayList<ArrayList<Double>> {
+        return arrayListOf(
+            botLeft.convertToArray(),
+            botRight.convertToArray(),
+            topRight.convertToArray(),
+            topLeft.convertToArray(),
+            botLeft.convertToArray()
+        )
+    }
 }

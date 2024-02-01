@@ -33,10 +33,10 @@ class DrivingService(
         }
     }
 
-    fun getGeoJsonRoute(start: ArrayList<Double>, end: ArrayList<Double>, avoidedSqaures: List<MapSquare>): FeatureCollection? {
+    fun getGeoJsonRoute(start: ArrayList<Double>, end: ArrayList<Double>, avoidedSquares: List<MapSquare>): FeatureCollection? {
         var routingOptions: RoutingOptions? = null
-        if (!avoidedSqaures.isEmpty()) {
-            val avoidPolygonOption = AvoidPolygonOption("MultiPolygon", listOf(avoidedSqaures.map { it.convertToArray() }))
+        if (!avoidedSquares.isEmpty()) {
+            val avoidPolygonOption = AvoidPolygonOption("MultiPolygon", listOf(avoidedSquares.map { it.convertToArray() }))
             routingOptions = RoutingOptions(avoidPolygonOption)
         }
         val postRouteBody = RoutingAvoidPolygonModel(arrayListOf(start, end), routingOptions)
