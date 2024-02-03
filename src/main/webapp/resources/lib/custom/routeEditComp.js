@@ -21,7 +21,20 @@ var routeEditComp = {
         }
     },
     mounted() {
+        if (!this.selectedRoute.routeData)
+            throw new Error("Selected route has no route data!")
 
+        if (!this.selectedRoute.routeData.startTimeMin)
+            this.selectedRoute.routeData.startTimeMin = this.getFormattedTime(this.startDateTime)
+
+        if (!this.selectedRoute.routeData.startTimeMax)
+            this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(this.startTimeMin)
+
+        if (!this.selectedRoute.routeData.endTimeMin)
+            this.selectedRoute.routeData.endTimeMin = this.getFormattedTime(this.endDateTime)
+
+        if (!this.selectedRoute.routeData.endTimeMax)
+            this.selectedRoute.routeData.endTimeMax = this.getFormattedTime(this.endDateTime)
     },
     template:`      <div>
                         <label>Название маршрута</label>
@@ -46,13 +59,6 @@ var routeEditComp = {
                     </div>`,
 
     computed: {
-        dateText () {
-          console.log(new Date(8.64e15))
-          console.log(this.startTime)
-          console.log(this.selectedRoute)
-          return this.startTime ? DatePicker.methods.stringify(startTime.date, 'DD-YYYY-MM') : '';
-
-        },
         selectedRouteName() {
             return this.selectedRoute.routeData.name
         },
@@ -80,94 +86,161 @@ var routeEditComp = {
                 throw new Error("Selected route has no route data!")
             var dateTime = new Date(moment().format('YYYY-MM-DD') + ' ' + this.selectedRoute.routeData.endTimeMax)
             return dateTime
+        },
+        morningStartDate() {
+            if (!this.morningStartHour)
+                throw new Error("Error in initialization!")
+            var dateTime = new Date(moment().format('YYYY-MM-DD') + ' 00:00:00')
+            dateTime.setHours(this.morningStartHour)
+            return dateTime
+        },
+        morningEndDate() {
+            if (!this.morningEndHour)
+                throw new Error("Error in initialization!")
+            var dateTime = new Date(moment().format('YYYY-MM-DD') + ' 00:00:00')
+            dateTime.setHours(this.morningEndHour)
+            return dateTime
+        },
+        eveningStartDate() {
+            if (!this.eveningStartHour)
+                throw new Error("Error in initialization!")
+            var dateTime = new Date(moment().format('YYYY-MM-DD') + ' 00:00:00')
+            dateTime.setHours(this.eveningStartHour)
+            return dateTime
+        },
+        eveningEndDate() {
+            if (!this.eveningEndHour)
+                throw new Error("Error in initialization!")
+            var dateTime = new Date(moment().format('YYYY-MM-DD') + ' 00:00:00')
+            dateTime.setHours(this.eveningEndHour)
+            return dateTime
+        },
+        startDateTime() {
+            return this.morningStartDate
+        },
+        endDateTime() {
+            return this.morningEndDate
         }
     },
     watch: {
-        selectedRouteName() {
-            console.log(this.selectedRoute.routeData.name)
+        selectedRoute() {
+            if (!this.selectedRoute.routeData)
+                throw new Error("Selected route has no route data!")
+
+            if (!this.selectedRoute.routeData.startTimeMin)
+                this.selectedRoute.routeData.startTimeMin = this.getFormattedTime(this.startDateTime)
+
+            if (!this.selectedRoute.routeData.startTimeMax)
+                this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(this.startTimeMin)
+
+            if (!this.selectedRoute.routeData.endTimeMin)
+                this.selectedRoute.routeData.endTimeMin = this.getFormattedTime(this.endDateTime)
+
+            if (!this.selectedRoute.routeData.endTimeMax)
+                this.selectedRoute.routeData.endTimeMax = this.getFormattedTime(this.endDateTime)
         },
         startTimeMin() {
-            if (!this.startTimeMin)
-                return
-
-            if (this.startTimeMin.getHours() < this.morningStartHour) {
-                console.log("Установим минимальное возможный утренний час для времени начала маршрута")
-                var min = this.startTimeMin
-                min.setHours(this.morningStartHour)
-                this.selectedRoute.routeData.startTimeMin = this.getFormattedTime(min)
-            }
-
-            this.selectedRoute.routeData.startTimeMax = null
-            this.selectedRoute.routeData.endTimeMin = null
-            this.selectedRoute.routeData.endTimeMax = null
+            this.checkStartTimeMin()
+            this.checkStartTimeMax()
+            this.checkEndTimeMin()
+            this.checkEndTimeMax()
         },
         startTimeMax() {
-            if (!this.startTimeMax)
-                return
-
-            if (!this.startTimeMin) {
-                this.selectedRoute.routeData.startTimeMax = null
-                return
-            }
-
-            if (this.startTimeMin && this.startTimeMax < this.startTimeMin) {
-                this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(moment(this.startTimeMin).toDate())
-            }
-
-            if (this.endTimeMax && this.startTimeMax > this.endTimeMax) {
-                this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(moment(this.endTimeMax).toDate())
-            }
-
-            if (this.maxDurationInHours < this.getDurationInHours(this.startTimeMin, this.startTimeMax)) {
-                this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(this.addHours(this.startTimeMin, this.maxDurationInHours))
-            }
+            this.checkStartTimeMin()
+            this.checkStartTimeMax()
+            this.checkEndTimeMin()
+            this.checkEndTimeMax()
         },
         endTimeMin() {
-            if (!this.endTimeMin)
-                return
-
-            if (!this.endTimeMax) {
-                this.selectedRoute.routeData.endTimeMin = null
-                return
-            }
-
-            if (!this.startTimeMin) {
-                this.selectedRoute.routeData.endTimeMin = null
-                return
-            }
-
-            if (this.startTimeMin && this.endTimeMin < this.startTimeMin) {
-                this.selectedRoute.routeData.endTimeMin = this.getFormattedTime(moment(this.startTimeMin).toDate())
-            }
-
-            if (this.endTimeMax && this.endTimeMin > this.endTimeMax) {
-                this.selectedRoute.routeData.endTimeMin = this.getFormattedTime(moment(this.endTimeMax).toDate())
-            }
+            this.checkStartTimeMin()
+            this.checkStartTimeMax()
+            this.checkEndTimeMin()
+            this.checkEndTimeMax()
         },
         endTimeMax() {
-            if (!this.endTimeMax)
-                return
-
-            if (this.endTimeMax.getHours() > this.eveningEndHour) {
-                console.log("Установим максимально возможный вечерний час для времени окончания маршрута")
-                var max = this.endTimeMax
-                max.setHours(this.eveningEndHour)
-                this.selectedRoute.routeData.endTimeMax = this.getFormattedTime(max)
-            }
-
-            if (this.startTimeMin && this.startTimeMin >= this.endTimeMax) {
-                console.log("Установим окончание маршрута с разницей в 30 минут")
-                this.selectedRoute.routeData.endTimeMax = this.getFormattedTime(moment(this.startTimeMin).add(30, 'm').toDate())
-            }
-
-            if (this.startTimeMin && this.maxDurationInHours < this.getDurationInHours(this.startTimeMin, this.endTimeMax)) {
-                this.selectedRoute.routeData.endTimeMax = this.getFormattedTime(this.addHours(this.startTimeMin, this.maxDurationInHours))
-            }
-
-            this.selectedRoute.routeData.endTimeMin = null
+            this.checkStartTimeMin()
+            this.checkStartTimeMax()
+            this.checkEndTimeMin()
+            this.checkEndTimeMax()
         }
     },
     methods: {
+        checkStartTimeMin() {
+            if (!this.startTimeMin)
+                return
+
+            if (this.startTimeMin < this.startDateTime) {
+                this.selectedRoute.routeData.startTimeMin = this.getFormattedTime(this.startDateTime)
+            }
+
+            if (this.startTimeMin > this.endDateTime) {
+                this.selectedRoute.routeData.startTimeMin = this.getFormattedTime(this.endDateTime)
+            }
+        },
+        checkStartTimeMax() {
+            if (!this.startTimeMax)
+                return
+
+            if (this.startTimeMax < this.startDateTime) {
+                this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(this.startDateTime)
+            }
+
+            if (this.startTimeMax > this.endDateTime) {
+                this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(this.endDateTime)
+            }
+
+            if (this.startTimeMin && this.startTimeMax < this.startTimeMin) {
+                this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(this.startTimeMin)
+            }
+
+            if (this.endTimeMin && this.startTimeMax > this.endTimeMin) {
+                this.selectedRoute.routeData.startTimeMax = this.getFormattedTime(this.endTimeMin)
+            }
+        },
+        checkEndTimeMin() {
+            if (!this.endTimeMin)
+                return
+
+            if (this.endTimeMin < this.startDateTime) {
+                this.selectedRoute.routeData.endTimeMin = this.getFormattedTime(this.startDateTime)
+            }
+
+            if (this.endTimeMin > this.endDateTime) {
+                this.selectedRoute.routeData.endTimeMin = this.getFormattedTime(this.endDateTime)
+            }
+
+            if (this.startTimeMin && this.endTimeMin < this.startTimeMin) {
+                this.selectedRoute.routeData.endTimeMin = this.getFormattedTime(this.startTimeMin)
+            }
+
+            if (this.startTimeMax && this.endTimeMin < this.startTimeMax) {
+                this.selectedRoute.routeData.endTimeMin = this.getFormattedTime(this.startTimeMax)
+            }
+
+            if (this.endTimeMax && this.endTimeMax < this.endTimeMin) {
+                this.selectedRoute.routeData.endTimeMin = this.getFormattedTime(this.endTimeMax)
+            }
+        },
+        checkEndTimeMax() {
+            if (!this.endTimeMax)
+                return
+
+            if (this.endTimeMax < this.startDateTime) {
+                this.selectedRoute.routeData.endTimeMax = this.getFormattedTime(this.startDateTime)
+            }
+
+            if (this.endTimeMax > this.endDateTime) {
+                this.selectedRoute.routeData.endTimeMax = this.getFormattedTime(this.endDateTime)
+            }
+
+            if (this.endTimeMin && this.endTimeMax < this.endTimeMin) {
+                this.selectedRoute.routeData.endTimeMax = this.getFormattedTime(this.endTimeMin)
+            }
+        },
+        getDurationInMinutes(start, end) {
+            var duration = moment.duration(moment(end).diff(moment(start)))
+            return duration.asMinutes()
+        },
         createDateAsUTC(date) {
             return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()));
         },

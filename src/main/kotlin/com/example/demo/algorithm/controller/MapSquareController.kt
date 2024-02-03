@@ -51,7 +51,9 @@ class MapSquareController(private val mapSquare: MapSquare) {
             result += BigDecimal(visitedRoute.routeData.distance / (visitedRoute.durationTimeInMinutesOfDay))
         }
 
-        return result / BigDecimal(visitedRouteDecisions.size)
+
+
+        return if (visitedRouteDecisions.isNotEmpty()) result / BigDecimal(visitedRouteDecisions.size) else result
     }
 
     fun clear() {
