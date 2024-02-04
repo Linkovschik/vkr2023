@@ -47,13 +47,22 @@ class MapSquareController(private val mapSquare: MapSquare) {
         var result = BigDecimal.ZERO
 
         val visitedRouteDecisions = mapSquare.visitedRoutes.filterIsInstance<MapRouteDecision>()
-        for (visitedRoute in visitedRouteDecisions) {
-            result += BigDecimal(visitedRoute.routeData.distance / (visitedRoute.durationTimeInMinutesOfDay))
+        if (visitedRouteDecisions.isNotEmpty()) {
+            for (visitedRoute in visitedRouteDecisions) {
+                result += BigDecimal(visitedRoute.routeData.distance / (visitedRoute.durationTimeInMinutesOfDay))
+            }
+            return result / BigDecimal(visitedRouteDecisions.size)
         }
 
+        val visitedRoutes = mapSquare.visitedRoutes
+        if (visitedRoutes.isNotEmpty()) {
+            for (visitedRoute in mapSquare.visitedRoutes) {
+                result += BigDecimal(visitedRoute.routeData.distance / (visitedRoute.durationTimeInMinutesOfDay))
+            }
+            return result / BigDecimal(visitedRoutes.size)
+        }
 
-
-        return if (visitedRouteDecisions.isNotEmpty()) result / BigDecimal(visitedRouteDecisions.size) else result
+        return result
     }
 
     fun clear() {

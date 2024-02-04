@@ -44,6 +44,8 @@ class DefaultAlgorithm : Algorithm {
 
             val result = arrayListOf<MapRouteDecision>()
 
+            mapMatrixController.updateMatrixState(allRoutes)
+
             for (route in routes) {
                 if (!allRoutes.map { it.routeData.name }.contains(route.routeData.name))
                     continue
@@ -111,14 +113,13 @@ class DefaultAlgorithm : Algorithm {
 
         val newRoute = createNewMapRoute(oldRoute, avoidedPolygons) ?: return defaultDecision
 
-        var newRankDegree = defaultRankDegree
         val rankDegreeErrorChance = Random.nextDouble(0.0, defaultRankDegree)
         if (newRoute.durationTimeInMinutesOfDay > endTime - startTime && rankDegreeErrorChance < ROUTE_RANK_DECREASE_IGNORE_PROBABILITY) {
-            newRankDegree = decreaseRankDegree(defaultRankDegree)
+            val newRankDegree = decreaseRankDegree(defaultRankDegree)
             return MapRouteDecision(oldRoute, mapMatrixController.getAvgCongestion(), startTime, endTime, newRankDegree)
         }
 
-        val avgCongestion = mapCongestionService.calcAvgCongestion(avoidedPolygons, startTime, endTime)
+        val avgCongestion = mapCongestionService.calcCongestion(avoidedPolygons, startTime, endTime).avgCongestion
         return MapRouteDecision(newRoute, avgCongestion, startTime, endTime)
     }
 

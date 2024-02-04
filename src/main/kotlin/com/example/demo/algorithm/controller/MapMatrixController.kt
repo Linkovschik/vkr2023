@@ -7,18 +7,22 @@ import com.example.demo.geojson.model.MyPoint
 import me.piruin.geok.geometry.LineString
 import java.math.BigDecimal
 
-class MapMatrixController (
+class MapMatrixController(
     private val mapSquares: List<MapSquare>,
     private val mapCongestionService: MapCongestionService
 ) : MapMatrixData {
 
-    private var maxCongestion: BigDecimal = mapCongestionService.calcMaxCongestion(mapSquares)
-    private var mediumCongestion: BigDecimal = mapCongestionService.calcAvgCongestion(mapSquares)
-    private var minCongestion: BigDecimal = mapCongestionService.calcMinCongestion(mapSquares)
+    private var maxCongestion: BigDecimal = BigDecimal.ZERO
+    private var mediumCongestion: BigDecimal = BigDecimal.ZERO
+    private var minCongestion: BigDecimal = BigDecimal.ZERO
 
     override fun updateMatrixState(routes: List<MapRoute>) {
         clearState()
         routes.forEach { makeRouteVisitSquares(it) }
+        val congestionResult = mapCongestionService.calcCongestion(mapSquares)
+        minCongestion = congestionResult.minCongestion
+        mediumCongestion = congestionResult.avgCongestion
+        maxCongestion = congestionResult.maxCongestion
     }
 
     override fun getMaxCongestion(): BigDecimal {
@@ -26,7 +30,7 @@ class MapMatrixController (
     }
 
     override fun getMinCongestion(): BigDecimal {
-       return minCongestion
+        return minCongestion
     }
 
     override fun getAvgCongestion(): BigDecimal {
@@ -61,7 +65,7 @@ class MapMatrixController (
         val result = arrayListOf<LineString>()
 
         for (i in 0..(mapPoints.size - 2) step 2) {
-            result.add(LineString(mapPoints[i].lat to mapPoints[i].lng, mapPoints[i + 1].lat to mapPoints[i + 1].lng))
+            result.add(LineString(mapPoints[i].lng to mapPoints[i].lat, mapPoints[i + 1].lng to mapPoints[i + 1].lat))
         }
 
         return result
