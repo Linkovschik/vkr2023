@@ -3,21 +3,26 @@ package com.example.demo.algorithm.model
 import com.example.demo.geojson.model.MyPoint
 import me.piruin.geok.LatLng
 import me.piruin.geok.geometry.Polygon
+import java.math.BigDecimal
 
 
-open class MapSquare(val botLeft: MyPoint,
-                     val botRight: MyPoint,
-                     val topRight: MyPoint,
-                     val topLeft: MyPoint,
-                     val visitedRoutes: ArrayList<MapRoute> = arrayListOf()
+open class MapSquare(
+    val botLeft: MyPoint,
+    val botRight: MyPoint,
+    val topRight: MyPoint,
+    val topLeft: MyPoint,
+    val visitedRoutes: ArrayList<MapRoute> = arrayListOf(),
+    val savedCongestion: BigDecimal = BigDecimal.ZERO
 ) {
 
 
-    constructor(mapSquare: MapSquare) : this(mapSquare.botLeft,
+    constructor(mapSquare: MapSquare) : this(
+        mapSquare.botLeft,
         mapSquare.botRight,
         mapSquare.topRight,
         mapSquare.topLeft,
-        mapSquare.visitedRoutes)
+        mapSquare.visitedRoutes
+    )
 
     val polygon = Polygon(
         LatLng(botLeft.lat, botLeft.lng),

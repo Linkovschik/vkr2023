@@ -12,7 +12,7 @@ import kotlin.random.Random
 class MapRouteController(
     private val mapRoute: MapRoute,
     private val mapCongestionService: MapCongestionService,
-    private val mapMatrixData: MapMatrixData,
+    private val mapMatrixData: MapMatrixData
 ) {
     fun selectStartTime(): Int {
         return selectTimeInMinutes(mapRoute.minStartTimeInMinutesOfDay, mapRoute.maxStartTimeInMinutesOfDay)

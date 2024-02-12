@@ -8,6 +8,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 open class MapCongestionService(
+    private val speedCoefficientCalculatorService: SpeedCoefficientCalculatorService,
     private val startTimeInMinutes: Int = DefaultAlgorithm.START_TIME_IN_MINUTES_OF_DAY,
     private val endTimeInMinutes: Int = DefaultAlgorithm.END_TIME_IN_MINUTES_OF_DAY,
     private val timeWindowInMinutes: Int = DefaultAlgorithm.TIME_WINDOW_IN_MINUTES,
@@ -22,8 +23,7 @@ open class MapCongestionService(
 
         for (currentMinute in startTimeInMinutes..endTimeInMinutes step timeWindowInMinutes) {
             results.add(mapSquares
-                .map { MapSquareController(it).calcCongestion(currentMinute) }
-                .filter { cong -> cong > congestionLimit }
+                .map { MapSquareController(it, speedCoefficientCalculatorService).calcCongestion(currentMinute) }
                 .reduce { acc, congestion -> acc + congestion }
                 .divide(BigDecimal(mapSquares.size), 4, RoundingMode.HALF_UP)
             )

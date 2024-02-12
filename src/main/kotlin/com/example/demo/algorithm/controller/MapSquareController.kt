@@ -4,11 +4,17 @@ import com.example.demo.geojson.model.MyPoint
 import com.example.demo.algorithm.model.MapRoute
 import com.example.demo.algorithm.model.MapRouteDecision
 import com.example.demo.algorithm.model.MapSquare
+import com.example.demo.algorithm.service.SpeedCoefficientCalculatorService
 import me.piruin.geok.geometry.LineString
 import me.piruin.geok.geometry.Polygon
+import java.lang.Math.log
+import java.lang.Math.max
 import java.math.BigDecimal
 
-class MapSquareController(private val mapSquare: MapSquare) {
+class MapSquareController(
+    private val mapSquare: MapSquare,
+    private val speedCoefficientCalculatorService: SpeedCoefficientCalculatorService
+) {
 
     fun intersect(point: MyPoint): Boolean {
         return point.lng > mapSquare.botLeft.lng &&
@@ -46,23 +52,38 @@ class MapSquareController(private val mapSquare: MapSquare) {
     fun calcCongestion(timeInMinutesOfDay: Int): BigDecimal {
         var result = BigDecimal.ZERO
 
-        val visitedRouteDecisions = mapSquare.visitedRoutes.filterIsInstance<MapRouteDecision>()
-        if (visitedRouteDecisions.isNotEmpty()) {
-            for (visitedRoute in visitedRouteDecisions) {
-                result += BigDecimal(visitedRoute.routeData.distance / (visitedRoute.durationTimeInMinutesOfDay))
-            }
-            return result / BigDecimal(visitedRouteDecisions.size)
+        var visitedRouteDecisions = mapSquare.visitedRoutes.filterIsInstance<MapRouteDecision>()
+        if (visitedRouteDecisions.isEmpty()) {
+            visitedRouteDecisions = mapSquare.visitedRoutes.map { MapRouteDecision(it) }
         }
 
-        val visitedRoutes = mapSquare.visitedRoutes
-        if (visitedRoutes.isNotEmpty()) {
-            for (visitedRoute in mapSquare.visitedRoutes) {
-                result += BigDecimal(visitedRoute.routeData.distance / (visitedRoute.durationTimeInMinutesOfDay))
-            }
-            return result / BigDecimal(visitedRoutes.size)
+        if (visitedRouteDecisions.isEmpty())
+            return result
+
+        for (visitedRoute in visitedRouteDecisions) {
+            val speed = speedDependOnPassedPathAdjustCoefficient(
+                visitedRoute,
+                timeInMinutesOfDay
+            ) * (visitedRoute.routeData.distance / visitedRoute.durationTimeInMinutesOfDay)
+
+            result += visitedRoute.avgCongestion.min(BigDecimal(speedCoefficientCalculatorService.calculate(speed)))
         }
 
-        return result
+        return result / BigDecimal(visitedRouteDecisions.size)
+
+    }
+
+    private fun speedDependOnPassedPathAdjustCoefficient(
+        visitedRoute: MapRouteDecision,
+        timeInMinutesOfDay: Int
+    ): Double {
+        val pathPart =
+            max(
+                0.1 + 1e-10,
+                (timeInMinutesOfDay - visitedRoute.startTimeInMinutes) / visitedRoute.durationTimeInMinutesOfDay.toDouble()
+            )
+
+        return log(pathPart * 10)
     }
 
     fun clear() {

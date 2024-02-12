@@ -3,13 +3,15 @@ package com.example.demo.algorithm.controller
 import com.example.demo.algorithm.model.MapRoute
 import com.example.demo.algorithm.model.MapSquare
 import com.example.demo.algorithm.service.MapCongestionService
+import com.example.demo.algorithm.service.SpeedCoefficientCalculatorService
 import com.example.demo.geojson.model.MyPoint
 import me.piruin.geok.geometry.LineString
 import java.math.BigDecimal
 
 class MapMatrixController(
     private val mapSquares: List<MapSquare>,
-    private val mapCongestionService: MapCongestionService
+    private val mapCongestionService: MapCongestionService,
+    private val speedCoefficientCalculatorService: SpeedCoefficientCalculatorService
 ) : MapMatrixData {
 
     private var maxCongestion: BigDecimal = BigDecimal.ZERO
@@ -38,7 +40,7 @@ class MapMatrixController(
     }
 
     private fun clearState() {
-        mapSquares.forEach { MapSquareController(it).clear() }
+        mapSquares.forEach { MapSquareController(it, speedCoefficientCalculatorService).clear() }
     }
 
     private fun makeRouteVisitSquares(route: MapRoute) {
@@ -50,7 +52,7 @@ class MapMatrixController(
 
         getLineStringArray(route.routeData.coordinates).forEach { line ->
             currentSquares.forEach { square ->
-                val mapSquareController = MapSquareController(square)
+                val mapSquareController = MapSquareController(square, speedCoefficientCalculatorService)
                 if (mapSquareController.intersect(line)) {
                     mapSquareController.addVisitRoute(route)
                     mapRouteController.addVisitSquare(square)
