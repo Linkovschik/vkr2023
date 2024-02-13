@@ -4,6 +4,7 @@ import com.example.demo.geojson.model.MyPoint
 import me.piruin.geok.LatLng
 import me.piruin.geok.geometry.Polygon
 import java.math.BigDecimal
+import kotlin.random.Random
 
 
 open class MapSquare(
@@ -12,7 +13,7 @@ open class MapSquare(
     val topRight: MyPoint,
     val topLeft: MyPoint,
     val visitedRoutes: ArrayList<MapRoute> = arrayListOf(),
-    val savedCongestion: BigDecimal = BigDecimal.ZERO
+    val savedCongestion: BigDecimal = Random.nextDouble(0.0, 1.0).toBigDecimal()
 ) {
 
 

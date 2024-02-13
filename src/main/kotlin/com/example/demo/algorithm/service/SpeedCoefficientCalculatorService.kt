@@ -14,7 +14,7 @@ class SpeedCoefficientCalculatorService(
         var speedDiff = speed - minSpeed
 
         if (speedDiff < 1e-10)
-            speedDiff = 1e-10
+            speedDiff = minSpeed
 
         return speedDiff / (maxSpeed - minSpeed)
     }

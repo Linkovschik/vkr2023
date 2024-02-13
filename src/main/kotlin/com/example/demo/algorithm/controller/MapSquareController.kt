@@ -10,6 +10,8 @@ import me.piruin.geok.geometry.Polygon
 import java.lang.Math.log
 import java.lang.Math.max
 import java.math.BigDecimal
+import kotlin.math.log10
+import kotlin.math.min
 
 class MapSquareController(
     private val mapSquare: MapSquare,
@@ -83,7 +85,7 @@ class MapSquareController(
                 (timeInMinutesOfDay - visitedRoute.startTimeInMinutes) / visitedRoute.durationTimeInMinutesOfDay.toDouble()
             )
 
-        return log(pathPart * 10)
+        return max(log10(pathPart * 10.0), 0.1)
     }
 
     fun clear() {

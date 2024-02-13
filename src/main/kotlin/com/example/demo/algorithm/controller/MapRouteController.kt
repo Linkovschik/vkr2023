@@ -1,5 +1,6 @@
 package com.example.demo.algorithm.controller
 
+import com.example.demo.algorithm.DefaultAlgorithm.Companion.FORCEFULLY_AVOID_MUTATION_CHANCE
 import com.example.demo.algorithm.model.MapRoute
 import com.example.demo.algorithm.model.MapSquare
 import com.example.demo.algorithm.service.MapCongestionService
@@ -27,29 +28,43 @@ class MapRouteController(
     }
 
     fun selectSquaresToAvoid(startTimeInMinutes: Int, endTimeInMinutes: Int): List<MapSquare> {
-        val probabilityOfAvoid = Random.nextDouble(0.0, 1.0)
-        return mapRoute.visitedSquares
+        val result = hashSetOf<MapSquare>()
+
+        val probabilityOfAvoid = Random.nextInt(0, 10) / 10.0
+
+        val actingVisitedSquares = mapRoute.visitedSquares
             .filter {
                 !Point(mapRoute.routeData.start.lng to mapRoute.routeData.start.lat).insideOf(it.polygon) &&
                         !Point(mapRoute.routeData.end.lng to mapRoute.routeData.end.lat).insideOf(it.polygon)
             }
+
+        if (actingVisitedSquares.isNotEmpty() && probabilityOfAvoid < FORCEFULLY_AVOID_MUTATION_CHANCE) {
+            val forceFullyAvoidSquareByNumber = Random.nextInt(0, actingVisitedSquares.size)
+            result.add(actingVisitedSquares[forceFullyAvoidSquareByNumber])
+        }
+
+        result.addAll(actingVisitedSquares
             .filter {
                 calcProbabilityToAvoid(
                     it,
                     startTimeInMinutes,
                     endTimeInMinutes
-                ) > probabilityOfAvoid
+                ) < probabilityOfAvoid
             }
+        )
+
+        return result.toList()
     }
 
     private fun calcProbabilityToAvoid(square: MapSquare, startTimeInMinutes: Int, endTimeInMinutes: Int): Double {
         val calculatedCongestion =
             mapCongestionService.calcCongestion(arrayListOf(square), startTimeInMinutes, endTimeInMinutes).avgCongestion
 
-        val maxCong = if (mapMatrixData.getMaxCongestion() == BigDecimal.ZERO) BigDecimal(1.0) else mapMatrixData.getMaxCongestion()
+        val maxCong =
+            if (mapMatrixData.getMaxCongestion() == BigDecimal.ZERO) BigDecimal(1.0) else mapMatrixData.getMaxCongestion()
 
-        val calculatedProbability = min(1.0, calculatedCongestion.divide(maxCong,4, RoundingMode.HALF_UP).toDouble())
-        val avgProbability = mapMatrixData.getAvgCongestion().divide(maxCong,4, RoundingMode.HALF_UP).toDouble()
+        val calculatedProbability = min(1.0, calculatedCongestion.divide(maxCong, 4, RoundingMode.HALF_UP).toDouble())
+        val avgProbability = mapMatrixData.getAvgCongestion().divide(maxCong, 4, RoundingMode.HALF_UP).toDouble()
 
         return (calculatedProbability + avgProbability) / 2.0
     }

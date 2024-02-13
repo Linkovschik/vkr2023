@@ -11,6 +11,9 @@ import com.example.demo.algorithm.service.MapCongestionService
 import com.example.demo.geojson.service.MappingService
 import com.example.demo.retrofit.DrivingService
 import org.springframework.stereotype.Component
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.stream.Collectors
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
@@ -18,18 +21,21 @@ import kotlin.random.Random
 @Component
 class DefaultAlgorithm : Algorithm {
     companion object {
-        val ALGORITHM_ITERATIONS_COUNT: Int = 10
-        val REBUILD_MATRIX_ALGORITHM_ITERATIONS_COUNT: Int = 2
+        val ALGORITHM_ITERATIONS_COUNT: Int = 50
+        val REBUILD_MATRIX_ALGORITHM_ITERATIONS_COUNT: Int = 5
         val TIME_WINDOW_IN_MINUTES: Int = 10
         val START_TIME_IN_MINUTES_OF_DAY: Int = 6 * 60
         val END_TIME_IN_MINUTES_OF_DAY: Int = 10 * 60
         val COUNT_OF_DECISIONS_FOR_ONE_ROUTE: Int = 7
-        val ROUTE_RANK_DECREASE_DEGREE: Double = 0.95
-        val ROUTE_RANK_DECREASE_THRESHOLD: Double = 0.6
+        val ROUTE_RANK_DECREASE_DEGREE: Double = 0.82
+        val ROUTE_RANK_DECREASE_THRESHOLD: Double = 0.45
         val INCORRECT_DECISION_TIMES: Int = 5
         val MAX_SPEED_IN_METERS_PER_MINUTE: Double = 1665.0
         val MIN_SPEED_IN_METERS_PER_MINUTE: Double = 167.0
+        val FORCEFULLY_AVOID_MUTATION_CHANCE: Double = 0.2
     }
+
+    private var mapUpdateIteration: AtomicInteger = 0
 
     private var mapMatrixService: MapMatrixService = MapMatrixService()
 
@@ -37,10 +43,12 @@ class DefaultAlgorithm : Algorithm {
 
     private var mappingService: MappingService = MappingService()
 
-    private var speedCoefficientCalculatorService: SpeedCoefficientCalculatorService = SpeedCoefficientCalculatorService()
+    private var speedCoefficientCalculatorService: SpeedCoefficientCalculatorService =
+        SpeedCoefficientCalculatorService()
     private var mapCongestionService: MapCongestionService = MapCongestionService(speedCoefficientCalculatorService)
 
-    private val mapMatrixController = MapMatrixController(mapMatrixService.createMatrix(), mapCongestionService, speedCoefficientCalculatorService)
+    private val mapMatrixController =
+        MapMatrixController(mapMatrixService.createMatrix(), mapCongestionService, speedCoefficientCalculatorService)
 
     private var allRoutes: MutableList<MapRoute> = mutableListOf()
 
@@ -53,16 +61,11 @@ class DefaultAlgorithm : Algorithm {
 
             mapMatrixController.updateMatrixState(allRoutes)
 
-            for (route in routes) {
-                if (!allRoutes.map { it.routeData.name }.contains(route.routeData.name))
-                    continue
 
-                val updatedRoute = updateRouteByAlgorithm(route)
-                result.add(updatedRoute)
+            result.addAll(allRoutes.parallelStream()
+                .map { updateRouteByAlgorithm(it) }.collect(Collectors.toList())
+            )
 
-                allRoutes = allRoutes.dropWhile { it.routeData.name == updatedRoute.routeData.name }.toMutableList()
-                allRoutes.add(updatedRoute)
-            }
 
             return result
 
@@ -80,9 +83,13 @@ class DefaultAlgorithm : Algorithm {
         for (iteration in 1..ALGORITHM_ITERATIONS_COUNT) {
             decision = selectBestDecision(createDecisions(decision))
 
-            if (iteration % REBUILD_MATRIX_ALGORITHM_ITERATIONS_COUNT == 0) {
-                mapMatrixController.updateMatrixState(allRoutes)
+
+            synchronized(this) {
+                if (mapUpdateIteration.accumulateAndGet(1) % REBUILD_MATRIX_ALGORITHM_ITERATIONS_COUNT == 0) {
+                    mapMatrixController.updateMatrixState(allRoutes)
+                }
             }
+
         }
 
         return decision
