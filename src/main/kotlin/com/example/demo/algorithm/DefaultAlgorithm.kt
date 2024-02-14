@@ -1,17 +1,16 @@
 package com.example.demo.algorithm
 
-import com.example.demo.algorithm.service.MapMatrixService
-import com.example.demo.algorithm.model.MapRoute
 import com.example.demo.algorithm.controller.MapMatrixController
 import com.example.demo.algorithm.controller.MapRouteController
+import com.example.demo.algorithm.model.MapRoute
 import com.example.demo.algorithm.model.MapRouteDecision
 import com.example.demo.algorithm.model.MapSquare
-import com.example.demo.algorithm.service.SpeedCoefficientCalculatorService
 import com.example.demo.algorithm.service.MapCongestionService
+import com.example.demo.algorithm.service.MapMatrixService
+import com.example.demo.algorithm.service.SpeedCoefficientCalculatorService
 import com.example.demo.geojson.service.MappingService
 import com.example.demo.retrofit.DrivingService
 import org.springframework.stereotype.Component
-import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Collectors
 import kotlin.math.max
@@ -22,11 +21,12 @@ import kotlin.random.Random
 class DefaultAlgorithm : Algorithm {
     companion object {
         val ALGORITHM_ITERATIONS_COUNT: Int = 50
+        val ROUTE_DECISION_PER_ITERATIONS_COUNT: Int = 10
         val REBUILD_MATRIX_ALGORITHM_ITERATIONS_COUNT: Int = 5
         val TIME_WINDOW_IN_MINUTES: Int = 10
         val START_TIME_IN_MINUTES_OF_DAY: Int = 6 * 60
         val END_TIME_IN_MINUTES_OF_DAY: Int = 10 * 60
-        val COUNT_OF_DECISIONS_FOR_ONE_ROUTE: Int = 7
+        val COUNT_OF_DECISIONS_FOR_ONE_ROUTE: Int = 4
         val ROUTE_RANK_DECREASE_DEGREE: Double = 0.82
         val ROUTE_RANK_DECREASE_THRESHOLD: Double = 0.45
         val INCORRECT_DECISION_TIMES: Int = 5
@@ -34,8 +34,6 @@ class DefaultAlgorithm : Algorithm {
         val MIN_SPEED_IN_METERS_PER_MINUTE: Double = 167.0
         val FORCEFULLY_AVOID_MUTATION_CHANCE: Double = 0.2
     }
-
-    private var mapUpdateIteration: AtomicInteger = 0
 
     private var mapMatrixService: MapMatrixService = MapMatrixService()
 
@@ -53,7 +51,6 @@ class DefaultAlgorithm : Algorithm {
     private var allRoutes: MutableList<MapRoute> = mutableListOf()
 
     override fun rebuildRoutes(routes: List<MapRoute>): List<MapRouteDecision> {
-
         try {
             allRoutes = routes.toMutableList()
 
@@ -61,11 +58,19 @@ class DefaultAlgorithm : Algorithm {
 
             mapMatrixController.updateMatrixState(allRoutes)
 
+            for (iteration in 1..ALGORITHM_ITERATIONS_COUNT) {
+                result.clear()
 
-            result.addAll(allRoutes.parallelStream()
-                .map { updateRouteByAlgorithm(it) }.collect(Collectors.toList())
-            )
+                if (iteration % REBUILD_MATRIX_ALGORITHM_ITERATIONS_COUNT == 0) {
+                    mapMatrixController.updateMatrixState(allRoutes)
+                }
 
+                result.addAll(
+                    allRoutes.parallelStream()
+                        .map { updateRouteByAlgorithm(it) }.collect(Collectors.toList())
+                )
+
+            }
 
             return result
 
@@ -80,16 +85,8 @@ class DefaultAlgorithm : Algorithm {
 
         var decision = selectBestDecision(createBaseDecisions(mapRoute))
 
-        for (iteration in 1..ALGORITHM_ITERATIONS_COUNT) {
+        for (iteration in 1..ROUTE_DECISION_PER_ITERATIONS_COUNT) {
             decision = selectBestDecision(createDecisions(decision))
-
-
-            synchronized(this) {
-                if (mapUpdateIteration.accumulateAndGet(1) % REBUILD_MATRIX_ALGORITHM_ITERATIONS_COUNT == 0) {
-                    mapMatrixController.updateMatrixState(allRoutes)
-                }
-            }
-
         }
 
         return decision
