@@ -85,7 +85,7 @@ class MapSquareController(
                 (timeInMinutesOfDay - visitedRoute.startTimeInMinutes) / visitedRoute.durationTimeInMinutesOfDay.toDouble()
             )
 
-        return max(log10(pathPart * 10.0), 0.1)
+        return 1.0 - max(log10(pathPart * 10.0), 1.0)
     }
 
     fun clear() {

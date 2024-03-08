@@ -30,7 +30,7 @@ class MapRouteController(
     fun selectSquaresToAvoid(startTimeInMinutes: Int, endTimeInMinutes: Int): List<MapSquare> {
         val result = hashSetOf<MapSquare>()
 
-        val probabilityOfAvoid = Random.nextInt(0, 10) / 10.0
+        val probabilityOfAvoid = Random.nextInt(0, 100) / 100.0
 
         val actingVisitedSquares = mapRoute.visitedSquares
             .filter {
