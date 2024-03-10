@@ -4,7 +4,6 @@ import com.example.demo.geojson.model.MyPoint
 import me.piruin.geok.LatLng
 import me.piruin.geok.geometry.Polygon
 import java.math.BigDecimal
-import kotlin.random.Random
 
 
 open class MapSquare(
@@ -13,16 +12,16 @@ open class MapSquare(
     val topRight: MyPoint,
     val topLeft: MyPoint,
     val visitedRoutes: ArrayList<MapRoute> = arrayListOf(),
-    val savedCongestion: BigDecimal = Random.nextDouble(0.0, 1.0).toBigDecimal()
+    var congestionByMinuteOfDay: MutableMap<Int, BigDecimal> = mutableMapOf()
 ) {
-
 
     constructor(mapSquare: MapSquare) : this(
         mapSquare.botLeft,
         mapSquare.botRight,
         mapSquare.topRight,
         mapSquare.topLeft,
-        mapSquare.visitedRoutes
+        mapSquare.visitedRoutes,
+        mapSquare.congestionByMinuteOfDay
     )
 
     val polygon = Polygon(
@@ -40,5 +39,20 @@ open class MapSquare(
             topLeft.convertToArray(),
             botLeft.convertToArray()
         )
+    }
+
+    fun getCongestionByMinuteOfDay(timeInMinutesOfDay: Int): BigDecimal {
+        var min = Int.MAX_VALUE
+        var closest: Int = timeInMinutesOfDay
+
+        for (keyMinuteOfDay in congestionByMinuteOfDay.keys) {
+            val diff: Int = Math.abs(keyMinuteOfDay - timeInMinutesOfDay)
+            if (diff < min) {
+                min = diff
+                closest = keyMinuteOfDay
+            }
+        }
+
+        return congestionByMinuteOfDay[closest] ?: BigDecimal.ZERO
     }
 }

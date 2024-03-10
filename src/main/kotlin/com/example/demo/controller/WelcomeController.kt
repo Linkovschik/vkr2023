@@ -43,7 +43,9 @@ class WelcomeController {
     fun startAlgorithm(@RequestBody updateRoutesModel: UpdateRoutesModel): List<Route> {
 
         val result = defaultAlgorithm.rebuildRoutes(updateRoutesModel.routes.map{ MapRoute(it)})
-        return result.map { it.routeData }.toMutableList()
+        return result
+            .map { it.getMutableRouteData() }
+            .toMutableList()
 
     }
 

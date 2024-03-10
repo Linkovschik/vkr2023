@@ -1,9 +1,9 @@
-package com.example.demo.algorithm.controller
+package com.example.demo.algorithm.route.change
 
 import com.example.demo.algorithm.DefaultAlgorithm.Companion.FORCEFULLY_AVOID_MUTATION_CHANCE
+import com.example.demo.algorithm.model.MapMatrixContext
 import com.example.demo.algorithm.model.MapRoute
 import com.example.demo.algorithm.model.MapSquare
-import com.example.demo.algorithm.service.MapCongestionService
 import me.piruin.geok.geometry.Point
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -12,9 +12,17 @@ import kotlin.random.Random
 
 class MapRouteController(
     private val mapRoute: MapRoute,
-    private val mapCongestionService: MapCongestionService,
-    private val mapMatrixData: MapMatrixData
+    private val mapMatrixContext: MapMatrixContext
 ) {
+    fun getAverageCongestionOnVisitedSquares(): BigDecimal {
+        val averageCongestions = arrayListOf<Double>()
+        for (currentMinute in mapRoute.getStartTimeInMinutesOfDay()..mapRoute.getEndTimeInMinutesOfDay() step mapMatrixContext.timeWindowInMinutes) {
+            averageCongestions.add(mapRoute.getAverageCongestionOnVisitedSquares(currentMinute).toDouble())
+        }
+        return if (averageCongestions.average().isNaN()) BigDecimal.ZERO
+        else averageCongestions.average().toBigDecimal()
+    }
+
     fun selectStartTime(): Int {
         return selectTimeInMinutes(mapRoute.minStartTimeInMinutesOfDay, mapRoute.maxStartTimeInMinutesOfDay)
     }
@@ -32,10 +40,12 @@ class MapRouteController(
 
         val probabilityOfAvoid = Random.nextInt(0, 100) / 100.0
 
-        val actingVisitedSquares = mapRoute.visitedSquares
+        val actingVisitedSquares = mapRoute.getVisitedSquares()
             .filter {
-                !Point(mapRoute.routeData.start.lng to mapRoute.routeData.start.lat).insideOf(it.polygon) &&
-                        !Point(mapRoute.routeData.end.lng to mapRoute.routeData.end.lat).insideOf(it.polygon)
+                !Point(mapRoute.getMutableRouteData().start.lng to mapRoute.getMutableRouteData().start.lat).insideOf(it.polygon) &&
+                        !Point(mapRoute.getMutableRouteData().end.lng to mapRoute.getMutableRouteData().end.lat).insideOf(
+                            it.polygon
+                        )
             }
 
         if (actingVisitedSquares.isNotEmpty() && probabilityOfAvoid < FORCEFULLY_AVOID_MUTATION_CHANCE) {
@@ -57,23 +67,21 @@ class MapRouteController(
     }
 
     private fun calcProbabilityToAvoid(square: MapSquare, startTimeInMinutes: Int, endTimeInMinutes: Int): Double {
+
+        val calculatedCongestions = arrayListOf<Double>()
+        for (currentMinute in startTimeInMinutes..endTimeInMinutes step mapMatrixContext.timeWindowInMinutes) {
+            calculatedCongestions.add(square.getCongestionByMinuteOfDay(currentMinute).toDouble())
+        }
         val calculatedCongestion =
-            mapCongestionService.calcCongestion(arrayListOf(square), startTimeInMinutes, endTimeInMinutes).avgCongestion
+            if (calculatedCongestions.average().isNaN()) BigDecimal.ZERO
+            else calculatedCongestions.average()
+                .toBigDecimal()
 
-        val maxCong =
-            if (mapMatrixData.getMaxCongestion() == BigDecimal.ZERO) BigDecimal(1.0) else mapMatrixData.getMaxCongestion()
-
-        val calculatedProbability = min(1.0, calculatedCongestion.divide(maxCong, 4, RoundingMode.HALF_UP).toDouble())
-        val avgProbability = mapMatrixData.getAvgCongestion().divide(maxCong, 4, RoundingMode.HALF_UP).toDouble()
-
-        return (calculatedProbability + avgProbability) / 2.0
-    }
-
-    fun addVisitSquare(square: MapSquare) {
-        mapRoute.visitedSquares.add(square)
-    }
-
-    fun clear() {
-        mapRoute.visitedSquares.clear()
+        return min(
+            1.0,
+            calculatedCongestion
+                .divide(mapMatrixContext.maxCongestion, 4, RoundingMode.HALF_UP)
+                .toDouble()
+        )
     }
 }

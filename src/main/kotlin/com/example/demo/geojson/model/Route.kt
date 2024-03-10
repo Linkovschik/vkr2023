@@ -4,9 +4,8 @@ import java.sql.Time
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
-private val count: AtomicInteger = AtomicInteger(1)
-
 data class Route (
+        val id: Int? = null,
         val segments: List<RouteSegment>,
         val coordinates: List<MyPoint>,
         val distance: Double,
@@ -18,7 +17,8 @@ data class Route (
         var endTimeMin: Time = Time(10, 0, 0),
         var endTimeMax: Time = Time(10, 0, 0),
         var name: String? = UUID.randomUUID().toString(),
-        val id: Int = count.incrementAndGet()
+        var startTime: Time? = null,
+        var endTime: Time? = null
 ) {
 
 }

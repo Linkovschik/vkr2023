@@ -36,6 +36,8 @@ dependencies {
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	//implementation("org.webjars.npm:geoman-io__leaflet-geoman-free:2.11.4")
 	implementation("io.github.piruin:geok:1.2.2")
+	// https://mvnrepository.com/artifact/org.postgresql/postgresql
+	implementation("org.postgresql:postgresql:42.2.24")
 }
 
 tasks.withType<KotlinCompile> {

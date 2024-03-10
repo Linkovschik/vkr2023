@@ -17,6 +17,7 @@ class MappingService {
         val properties = feature.properties
 
         return Route(
+                null,
                 properties.segments.map { mapSegment(it, routeCoordinates) },
                 routeCoordinates.map { MyPoint(it.first(), it.last()) },
                 properties.summary.distance,

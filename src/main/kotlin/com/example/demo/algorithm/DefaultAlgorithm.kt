@@ -1,17 +1,15 @@
 package com.example.demo.algorithm
 
 import com.example.demo.algorithm.controller.MapMatrixController
-import com.example.demo.algorithm.controller.MapRouteController
+import com.example.demo.algorithm.model.MapMatrixContext
+import com.example.demo.algorithm.route.change.MapRouteController
 import com.example.demo.algorithm.model.MapRoute
-import com.example.demo.algorithm.model.MapRouteDecision
 import com.example.demo.algorithm.model.MapSquare
-import com.example.demo.algorithm.service.MapCongestionService
 import com.example.demo.algorithm.service.MapMatrixService
 import com.example.demo.algorithm.service.SpeedCoefficientCalculatorService
 import com.example.demo.geojson.service.MappingService
 import com.example.demo.retrofit.DrivingService
 import org.springframework.stereotype.Component
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Collectors
 import kotlin.math.max
 import kotlin.math.min
@@ -24,13 +22,13 @@ class DefaultAlgorithm : Algorithm {
         val ROUTE_DECISION_PER_ITERATIONS_COUNT: Int = 10
         val REBUILD_MATRIX_ALGORITHM_ITERATIONS_COUNT: Int = 5
         val TIME_WINDOW_IN_MINUTES: Int = 10
-        val START_TIME_IN_MINUTES_OF_DAY: Int = 6 * 60
-        val END_TIME_IN_MINUTES_OF_DAY: Int = 10 * 60
+        val ALGORITHM_START_TIME_IN_MINUTES_OF_DAY: Int = 6 * 60
+        val ALGORITHM_END_TIME_IN_MINUTES_OF_DAY: Int = 10 * 60
         val COUNT_OF_DECISIONS_FOR_ONE_ROUTE: Int = 4
         val ROUTE_RANK_DECREASE_DEGREE: Double = 0.82
-        val ROUTE_RANK_DECREASE_THRESHOLD: Double = 0.45
+        val NEW_ROUTE_CONTRADICTION_IGNORE_CHANCE: Double = 0.3
         val INCORRECT_DECISION_TIMES: Int = 5
-        val MAX_SPEED_IN_METERS_PER_MINUTE: Double = 1665.0
+        val MAX_SPEED_IN_METERS_PER_MINUTE: Double = 1083.0
         val MIN_SPEED_IN_METERS_PER_MINUTE: Double = 167.0
         val FORCEFULLY_AVOID_MUTATION_CHANCE: Double = 0.2
     }
@@ -43,18 +41,22 @@ class DefaultAlgorithm : Algorithm {
 
     private var speedCoefficientCalculatorService: SpeedCoefficientCalculatorService =
         SpeedCoefficientCalculatorService()
-    private var mapCongestionService: MapCongestionService = MapCongestionService(speedCoefficientCalculatorService)
-
     private val mapMatrixController =
-        MapMatrixController(mapMatrixService.createMatrix(), mapCongestionService, speedCoefficientCalculatorService)
+        MapMatrixController(
+            mapMatrixService.createMatrix(),
+            speedCoefficientCalculatorService,
+            ALGORITHM_START_TIME_IN_MINUTES_OF_DAY,
+            ALGORITHM_END_TIME_IN_MINUTES_OF_DAY,
+            TIME_WINDOW_IN_MINUTES
+        )
 
     private var allRoutes: MutableList<MapRoute> = mutableListOf()
 
-    override fun rebuildRoutes(routes: List<MapRoute>): List<MapRouteDecision> {
+    override fun rebuildRoutes(routes: List<MapRoute>): List<MapRoute> {
         try {
             allRoutes = routes.toMutableList()
 
-            val result = arrayListOf<MapRouteDecision>()
+            val result = arrayListOf<MapRoute>()
 
             mapMatrixController.updateMatrixState(allRoutes)
 
@@ -66,7 +68,7 @@ class DefaultAlgorithm : Algorithm {
                 }
 
                 result.addAll(
-                    allRoutes.parallelStream()
+                    allRoutes.stream()
                         .map { updateRouteByAlgorithm(it) }.collect(Collectors.toList())
                 )
 
@@ -81,7 +83,7 @@ class DefaultAlgorithm : Algorithm {
         return emptyList()
     }
 
-    private fun updateRouteByAlgorithm(mapRoute: MapRoute): MapRouteDecision {
+    private fun updateRouteByAlgorithm(mapRoute: MapRoute): MapRoute {
 
         var decision = selectBestDecision(createBaseDecisions(mapRoute))
 
@@ -92,7 +94,7 @@ class DefaultAlgorithm : Algorithm {
         return decision
     }
 
-    private fun selectBestDecision(decisions: List<MapRouteDecision>): MapRouteDecision {
+    private fun selectBestDecision(decisions: List<MapRoute>): MapRoute {
         val sortedDecisions = getSortedDecisions(decisions)
         if (sortedDecisions.isEmpty())
             throw Exception("Невозможно выбрать лучшее решение из пустого списка решений!")
@@ -101,109 +103,90 @@ class DefaultAlgorithm : Algorithm {
         return sortedDecisions[randomIndex]
     }
 
-    private fun getSortedDecisions(decisions: List<MapRouteDecision>): List<MapRouteDecision> {
-        return decisions.sortedWith(compareBy({ it.durationTimeInMinutesOfDay }, { it.avgCongestion }))
+    private fun getSortedDecisions(decisions: List<MapRoute>): List<MapRoute> {
+        return decisions.sortedWith(
+            compareBy(
+                { it.durationTimeInMinutesOfDay },
+                { MapRouteController(it, MapMatrixContext()).getAverageCongestionOnVisitedSquares() }
+            )
+        )
     }
 
-    private fun createBaseDecision(oldRoute: MapRoute): MapRouteDecision {
-        val oldRouteController = MapRouteController(oldRoute, mapCongestionService, mapMatrixController)
+    private fun createBaseDecision(oldRoute: MapRoute): MapRoute {
+        val oldRouteController = MapRouteController(oldRoute, MapMatrixContext())
+
+        val startTime = oldRouteController.selectStartTime()
+        val endTime = oldRouteController.selectEndTime()
+        oldRoute.updateStartTimeByMinutesOfDay(startTime)
+        oldRoute.updateEndTimeByMinutesOfDay(endTime)
+
+        return oldRoute
+    }
+
+    private fun createDecision(oldMapRoute: MapRoute): MapRoute {
+        val oldRouteController = MapRouteController(oldMapRoute, MapMatrixContext())
 
         val startTime = oldRouteController.selectStartTime()
         val endTime = oldRouteController.selectEndTime()
 
-        val defaultRankDegree = 1.0
-        val defaultCongestion = mapMatrixController.getAvgCongestion()
-
-        val defaultDecision =
-            MapRouteDecision(oldRoute, defaultCongestion, startTime, endTime, defaultRankDegree)
-
-        return defaultDecision
-    }
-
-    private fun createDecision(oldMapRouteDecision: MapRouteDecision): MapRouteDecision {
-        val oldRouteController = MapRouteController(oldMapRouteDecision, mapCongestionService, mapMatrixController)
-
-        val startTime = oldRouteController.selectStartTime()
-        val endTime = oldRouteController.selectEndTime()
-
-        val avgCongestion =
-            mapCongestionService.calcCongestion(oldMapRouteDecision.visitedSquares, startTime, endTime).avgCongestion
+        oldMapRoute.updateStartTimeByMinutesOfDay(startTime)
+        oldMapRoute.updateEndTimeByMinutesOfDay(endTime)
 
         val avoidedPolygons = oldRouteController.selectSquaresToAvoid(startTime, endTime)
-        if (avoidedPolygons.isEmpty())
-            return MapRouteDecision(
-                oldMapRouteDecision.mapRoute,
-                avgCongestion,
-                startTime,
-                endTime,
-                increaseRankDegree(oldMapRouteDecision.rankDegree)
-            )
+        if (avoidedPolygons.isEmpty()) {
+            oldMapRoute.rankDegree = increaseRankDegree(oldMapRoute.rankDegree)
+            return oldMapRoute
+        }
 
-        val newRoute = createNewMapRoute(oldMapRouteDecision, avoidedPolygons)
-            ?: return MapRouteDecision(
-                oldMapRouteDecision.mapRoute,
-                avgCongestion,
-                startTime,
-                endTime,
-                decreaseRankDegreeMore(oldMapRouteDecision.rankDegree)
-            )
+        val newRoute = createNewMapRoute(oldMapRoute, avoidedPolygons, startTime, endTime)
 
-        return if (newRoute.durationTimeInMinutesOfDay > endTime - startTime) {
-            val newRankDegree = decreaseRankDegreeMore(oldMapRouteDecision.rankDegree)
-            if (Random.nextDouble(0.0, newRankDegree) > ROUTE_RANK_DECREASE_THRESHOLD)
-                MapRouteDecision(
-                    oldMapRouteDecision.mapRoute,
-                    avgCongestion,
-                    startTime,
-                    endTime,
-                    newRankDegree
-                )
-            else
-                MapRouteDecision(
-                    newRoute,
-                    avgCongestion,
-                    startTime,
-                    endTime,
-                    newRankDegree
-                )
+        if (newRoute == null) {
+            oldMapRoute.rankDegree = decreaseRankDegree(oldMapRoute.rankDegree)
+            return oldMapRoute
+        }
 
+
+        return if (newRoute.durationTimeInMinutesOfDay > newRoute.getEndTimeInMinutesOfDay() - newRoute.getStartTimeInMinutesOfDay()) {
+            if (Random.nextInt(0, 100) / 100.0 < NEW_ROUTE_CONTRADICTION_IGNORE_CHANCE) {
+                newRoute
+            } else {
+                oldMapRoute.rankDegree = decreaseRankDegreeMore(oldMapRoute.rankDegree)
+                oldMapRoute
+            }
         } else {
-            val newRankDegree = decreaseRankDegree(oldMapRouteDecision.rankDegree)
-            if (Random.nextDouble(0.0, newRankDegree) > ROUTE_RANK_DECREASE_THRESHOLD)
-                MapRouteDecision(
-                    oldMapRouteDecision.mapRoute,
-                    avgCongestion,
-                    startTime,
-                    endTime,
-                    newRankDegree
-                )
-            else
-                MapRouteDecision(
-                    newRoute,
-                    avgCongestion,
-                    startTime,
-                    endTime,
-                    newRankDegree
-                )
+            newRoute
         }
     }
 
     private fun createNewMapRoute(
         oldRoute: MapRoute,
-        avoidedPolygons: List<MapSquare>
+        avoidedPolygons: List<MapSquare>,
+        startTime: Int,
+        endTime: Int
     ): MapRoute? {
         val featureCollection =
             drivingService.getGeoJsonRoute(
-                oldRoute.routeData.start.convertToArray(),
-                oldRoute.routeData.end.convertToArray(),
+                oldRoute.getMutableRouteData().start.convertToArray(),
+                oldRoute.getMutableRouteData().end.convertToArray(),
                 avoidedPolygons
             ) ?: return null
 
-        return MapRoute(mappingService.mapFeatureToRoute(featureCollection.features.first()))
+        val routeData = mappingService.mapFeatureToRoute(
+            featureCollection.features.first()
+        )
+
+        val newRoute = MapRoute(routeData)
+        newRoute.updateStartTimeByMinutesOfDay(startTime)
+        newRoute.updateEndTimeByMinutesOfDay(endTime)
+
+        mapMatrixController.makeRouteVisitSquares(newRoute)
+        mapMatrixController.makeRouteStopVisitSquares(oldRoute)
+
+        return newRoute
     }
 
-    private fun createBaseDecisions(oldRoute: MapRoute): List<MapRouteDecision> {
-        val result = arrayListOf<MapRouteDecision>()
+    private fun createBaseDecisions(oldRoute: MapRoute): List<MapRoute> {
+        val result = arrayListOf<MapRoute>()
 
         for (num in 0..COUNT_OF_DECISIONS_FOR_ONE_ROUTE) {
             result.add(createBaseDecision(oldRoute))
@@ -213,8 +196,8 @@ class DefaultAlgorithm : Algorithm {
     }
 
 
-    private fun createDecisions(oldRoute: MapRouteDecision): List<MapRouteDecision> {
-        val result = arrayListOf<MapRouteDecision>()
+    private fun createDecisions(oldRoute: MapRoute): List<MapRoute> {
+        val result = arrayListOf<MapRoute>()
 
         for (num in 0..COUNT_OF_DECISIONS_FOR_ONE_ROUTE) {
             result.add(createDecision(oldRoute))

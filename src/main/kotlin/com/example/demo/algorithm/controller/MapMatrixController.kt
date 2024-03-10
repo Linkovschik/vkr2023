@@ -2,65 +2,75 @@ package com.example.demo.algorithm.controller
 
 import com.example.demo.algorithm.model.MapRoute
 import com.example.demo.algorithm.model.MapSquare
-import com.example.demo.algorithm.service.MapCongestionService
+import com.example.demo.algorithm.route.visit.MapRouteVisitController
 import com.example.demo.algorithm.service.SpeedCoefficientCalculatorService
+import com.example.demo.algorithm.square.congestion.MapSquareCongestionController
+import com.example.demo.algorithm.square.init.MapSquareInitController
+import com.example.demo.algorithm.square.visit.MapSquareVisitController
 import com.example.demo.geojson.model.MyPoint
 import me.piruin.geok.geometry.LineString
-import java.math.BigDecimal
 
 class MapMatrixController(
     private val mapSquares: List<MapSquare>,
-    private val mapCongestionService: MapCongestionService,
-    private val speedCoefficientCalculatorService: SpeedCoefficientCalculatorService
-) : MapMatrixData {
+    private val speedCoefficientCalculatorService: SpeedCoefficientCalculatorService,
+    private val startTimeInMinutes: Int,
+    private val endTimeInMinutes: Int,
+    private val timeWindowInMinutes: Int
+) {
 
-    private var maxCongestion: BigDecimal = BigDecimal.ZERO
-    private var mediumCongestion: BigDecimal = BigDecimal.ZERO
-    private var minCongestion: BigDecimal = BigDecimal.ZERO
+    fun updateMatrixState(routes: List<MapRoute>) {
+        initAlgorithmDataForAllSquares()
+        updateVisitorsOfSquares(routes)
+        updateCongestionOfSquares()
+    }
 
-    override fun updateMatrixState(routes: List<MapRoute>) {
-        clearState()
+    private fun initAlgorithmDataForAllSquares() {
+        mapSquares.forEach {
+            MapSquareInitController(it, startTimeInMinutes, endTimeInMinutes, timeWindowInMinutes)
+                .initAlgorithmDataForSquare()
+        }
+    }
+
+    private fun updateVisitorsOfSquares(routes: List<MapRoute>) {
         routes.forEach { makeRouteVisitSquares(it) }
-        val congestionResult = mapCongestionService.calcCongestion(mapSquares)
-        minCongestion = congestionResult.minCongestion
-        mediumCongestion = congestionResult.avgCongestion
-        maxCongestion = congestionResult.maxCongestion
     }
 
-    override fun getMaxCongestion(): BigDecimal {
-        return maxCongestion
+    private fun updateCongestionOfSquares() {
+        mapSquares.forEach {
+            MapSquareCongestionController(
+                it,
+                speedCoefficientCalculatorService,
+                startTimeInMinutes,
+                endTimeInMinutes,
+                timeWindowInMinutes
+            ).updateCongestionOfSquare()
+        }
     }
 
-    override fun getMinCongestion(): BigDecimal {
-        return minCongestion
-    }
-
-    override fun getAvgCongestion(): BigDecimal {
-        return mediumCongestion
-    }
-
-    private fun clearState() {
-        mapSquares.forEach { MapSquareController(it, speedCoefficientCalculatorService).clear() }
-    }
-
-    private fun makeRouteVisitSquares(route: MapRoute) {
-        val mapRouteController = MapRouteController(route, mapCongestionService, this)
+    fun makeRouteVisitSquares(route: MapRoute) {
+        val mapRouteController = MapRouteVisitController(route)
         mapRouteController.clear()
 
         var currentSquares = mapSquares.toMutableList()
         val nextSquares = currentSquares.toMutableList()
 
-        getLineStringArray(route.routeData.coordinates).forEach { line ->
+        getLineStringArray(mapRouteController.getRouteDataCoordinates()).forEach { line ->
             currentSquares.forEach { square ->
-                val mapSquareController = MapSquareController(square, speedCoefficientCalculatorService)
-                if (mapSquareController.intersect(line)) {
-                    mapSquareController.addVisitRoute(route)
+                val mapSquareVisitController = MapSquareVisitController(square)
+                if (mapSquareVisitController.intersect(line)) {
+                    mapSquareVisitController.addVisitRoute(route)
                     mapRouteController.addVisitSquare(square)
                     nextSquares.remove(square)
                 }
             }
             currentSquares = nextSquares.toMutableList()
         }
+    }
+
+    fun makeRouteStopVisitSquares(route: MapRoute) {
+        val mapRouteController = MapRouteVisitController(route)
+        mapRouteController.getVisitedSquares().forEach{ MapSquareVisitController(it).removeVisitRoute(route)}
+        mapRouteController.clear()
     }
 
     private fun getLineStringArray(mapPoints: List<MyPoint>): List<LineString> {
