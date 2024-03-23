@@ -11,12 +11,13 @@ import com.example.demo.repository.model.RouteSegmentStepModel
 import org.springframework.stereotype.Component
 
 @Component
-class MapRouteModel {
+class RouteModelMapper {
     fun mapRouteToRouteModel(route: Route?): RouteModel? {
         if (route == null) return null
 
         val routeModel = RouteModel()
             .apply {
+                id = route.id
                 segments = route.segments.mapNotNull { mapRouteSegmentToModel(it) }
                 coordinates = route.coordinates.mapNotNull { mapPointToPointModel(it) }
                 distance = route.distance

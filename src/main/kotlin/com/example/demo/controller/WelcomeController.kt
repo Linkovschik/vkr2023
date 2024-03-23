@@ -7,7 +7,9 @@ import com.example.demo.geojson.model.Route
 import com.example.demo.geojson.model.Zone
 import com.example.demo.geojson.service.MappingService
 import com.example.demo.repository.impl.RouteRepository
-import com.example.demo.repository.mapper.MapRouteModel
+import com.example.demo.repository.impl.ZoneRepository
+import com.example.demo.repository.mapper.RouteModelMapper
+import com.example.demo.repository.mapper.ZoneModelMapper
 import com.example.demo.retrofit.DrivingService
 import com.example.demo.web.RouteBuildModel
 import com.example.demo.web.UpdateRoutesModel
@@ -42,7 +44,13 @@ class WelcomeController {
     private lateinit var routeRepository: RouteRepository
 
     @Autowired
-    private lateinit var mapRouteModel: MapRouteModel
+    private lateinit var zoneRepository: ZoneRepository
+
+    @Autowired
+    private lateinit var routeModelMapper: RouteModelMapper
+
+    @Autowired
+    private lateinit var zoneModelMapper: ZoneModelMapper
 
     @GetMapping("/welcome")
     fun welcome(model: Model): String {
@@ -88,7 +96,7 @@ class WelcomeController {
 
     @PutMapping("/updateRoutes")
     @ResponseStatus(value = HttpStatus.OK)
-    fun updateRoutes(@RequestBody updateRoutesModel: UpdateRoutesModel){
+    fun updateRoutes(@RequestBody updateRoutesModel: UpdateRoutesModel) {
         routeTable.clear()
         routeTable.addAll(updateRoutesModel.routes)
         writeRoutesToFile(updateRoutesModel)
@@ -96,7 +104,7 @@ class WelcomeController {
 
     @PutMapping("/updateZones")
     @ResponseStatus(value = HttpStatus.OK)
-    fun updateZones(@RequestBody updateZonesModel: UpdateZonesModel){
+    fun updateZones(@RequestBody updateZonesModel: UpdateZonesModel) {
         zoneTable.clear()
         zoneTable.addAll(updateZonesModel.savedZones)
         writeZonesToFile(updateZonesModel)
@@ -129,6 +137,10 @@ class WelcomeController {
         val jsonString: String = gson.toJson(updateZonesModel)
         val file = File(filePath)
         file.writeText(jsonString)
+
+        zoneRepository.deleteAll()
+        zoneRepository.flush()
+        zoneRepository.saveAllAndFlush(updateZonesModel.savedZones.map { zoneModelMapper.mapZoneToZoneModel(it) })
     }
 
 
@@ -138,7 +150,8 @@ class WelcomeController {
         val result = file.readText()
         if (result.isBlank())
             return UpdateZonesModel()
-        return gson.fromJson(result, UpdateZonesModel::class.java)
+
+        return UpdateZonesModel(zoneRepository.findAll().mapNotNull { zoneModelMapper.mapZoneModelToZone(it) })
     }
 
     private fun writeRoutesToFile(
@@ -152,7 +165,7 @@ class WelcomeController {
 
         routeRepository.deleteAll()
         routeRepository.flush()
-        routeRepository.saveAllAndFlush(updateRoutesModel.routes.map { mapRouteModel.mapRouteToRouteModel(it) })
+        routeRepository.saveAllAndFlush(updateRoutesModel.routes.map { routeModelMapper.mapRouteToRouteModel(it) })
     }
 
     private fun readRoutesFromFile(filePath: String = "D:\\VKR\\project\\fakeDB\\fakeDB.txt"): UpdateRoutesModel {
@@ -163,6 +176,6 @@ class WelcomeController {
             return UpdateRoutesModel()
         //return gson.fromJson(result, UpdateRoutesModel::class.java)
 
-        return UpdateRoutesModel(routeRepository.findAll().mapNotNull { mapRouteModel.mapRouteModelToRouteTo(it) })
+        return UpdateRoutesModel(routeRepository.findAll().mapNotNull { routeModelMapper.mapRouteModelToRouteTo(it) })
     }
 }

@@ -83,8 +83,10 @@ var zoneComp = {
         },
         selectedZone: function(newVal, oldVal) {
             if (oldVal) {
-                oldVal.layerObject.options.draggable = false
-                oldVal.layerObject.dragging.disable();
+                if (oldVal.layerObject.dragging) {
+                    oldVal.layerObject.options.draggable = false
+                    oldVal.layerObject.dragging.disable();
+                }
                 oldVal.setIcon(this.selectedZoneSavedIcon)
             }
 
@@ -134,7 +136,7 @@ var zoneComp = {
                 this.mapStructure.removeObjectFromMap(zone)
             }
 
-            this.tempZones.clear()
+            this.tempZones = []
             this.resetSelectedZone()
         },
         clearSaveZones() {
@@ -142,7 +144,7 @@ var zoneComp = {
                 this.mapStructure.removeObjectFromMap(zone)
             }
 
-            this.savedZones.clear()
+            this.savedZones = []
             this.resetSelectedZone()
         },
         removeFromSavedZones(zone) {
@@ -212,6 +214,7 @@ var zoneComp = {
                 var err = textStatus + ', ' + error;
             })
 
+           this.clearSaveZones()
            var zoneDataList = result;
            for (const zoneData of zoneDataList) {
                 var zone = new Zone(zoneData, this.mapStructure)

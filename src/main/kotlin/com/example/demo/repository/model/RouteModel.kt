@@ -10,7 +10,7 @@ import java.util.*
 class RouteModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Int? = null
+    var id: Int? = null
 
     @OneToMany(cascade = [CascadeType.ALL])
     var segments: List<RouteSegmentModel> = emptyList()
