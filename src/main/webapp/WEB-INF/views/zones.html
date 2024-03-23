@@ -10,20 +10,12 @@
   <script src="/resources/lib/leaflet/leaflet.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 
-  <script>
-      var config = {test: 1, dfg: 2}
-      console.log(config)
-  </script>
-
   <div id="app">
-      <section-content>
-      </section-content>
+      <zone-content>
+      </zone-content>
   </div>
 
   <script src="/resources/lib/custom/class/dto.js"></script>
-  <!--
-  <script src="/resources/lib/custom/mainMapScripts.js"></script>
-  //-->
 
   <!-- версия для разработки, отображает полезные предупреждения в консоли -->
   <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
@@ -38,9 +30,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@vuelidate/validators"></script>
 
   <!--'some-component': httpVueLoader('./resources/assets/js/components/some.vue')-->
- <script src="/resources/lib/custom/routeEditComp.js"></script>
- <script src="/resources/lib/custom/mainComp.js"></script>
- <script src="/resources/lib/custom/app.js"></script>
+ <script src="/resources/lib/custom/zoneEditComp.js"></script>
+ <script src="/resources/lib/custom/zoneComp.js"></script>
+ <script src="/resources/lib/custom/zoneApp.js"></script>
 </body>
 <div th:insert="~{footer :: copy}"></div>
 </html>

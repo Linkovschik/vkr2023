@@ -1,5 +1,7 @@
 const MapStatesEnum = { "PutRouteStart": 0, "PutRouteEnd": 1, "BuildRoute": 2, "Algorithm": 3, "RouteEdit": 4 };
 
+const ZoneMapStatesEnum = {"Default" : 0 ,"PutZone": 1, "ZoneEdit": 2};
+
 const IndexZObjectKeepTypeMap = new Map([
   ["temp", 1],
   ["cache", 2]
@@ -47,6 +49,7 @@ class MapStructure {
         })
 
         this.selectedRoute = null
+        this.selectedZone = null
         this.adjustLayerZIndexes()
     }
 
@@ -124,6 +127,19 @@ class MapStructure {
         })
         this.mapObjects = []
     }
+
+    addObjectOnMap(mapLayerObject) {
+        this.figuresOnMap.addLayer(mapLayerObject.layerObject)
+    }
+
+    removeObjectFromMap(mapLayerObject) {
+        this.figuresOnMap.removeLayer(mapLayerObject.layerObject)
+    }
+
+    clearMapFromObjects() {
+        this.figuresOnMap.clearLayers()
+    }
+
 }
 
 class MapLayerObject {
@@ -151,6 +167,7 @@ class MapLayerObject {
     removeFromMapCache() {
         this.mapStructure.removeObjectFromBothMapAndCache(this)
     }
+
 }
 
 class Point extends MapLayerObject {
@@ -168,6 +185,18 @@ class Point extends MapLayerObject {
 
         this.enableDraggingUpdate()
         this.enableRouteRelatedPointClick()
+    }
+
+    setIcon(icon) {
+        if (!this.layerObject instanceof L.Marker)
+            return
+        this.layerObject.setIcon(icon)
+    }
+
+    getIcon() {
+        if (!this.layerObject instanceof L.Marker)
+            return
+        return this.layerObject.options.icon
     }
 
     enableDraggingUpdate() {
@@ -250,6 +279,58 @@ class StartPoint extends Point {
 class EndPoint extends Point {
     constructor(lat, lng, mapStructure, draggable = true, icon = mapStructure.blackIcon, parents = new Set()) {
         super(lat, lng, mapStructure, draggable, icon, parents)
+    }
+}
+
+class Zone extends MapLayerObject {
+    constructor(zoneData, mapStructure, draggable = true, icon = mapStructure.blackIcon, parents = new Set()) {
+        var lat = zoneData.lat
+        var lng = zoneData.lng
+        if (!icon)
+            throw new Error('Set icon type for Point child class!' + this.getClass())
+
+        var marker = L.marker(new L.LatLng(lat, lng), { icon: icon, draggable: false })
+        super(marker, mapStructure)
+
+        this.zoneData = zoneData
+
+        this.layerObject.on('dblclick', function(event) {
+            var marker = event.target;
+            if (!marker.relatedObject instanceof Zone)
+                return
+
+            if (marker.relatedObject.mapStructure.selectedZone)
+                marker.relatedObject.mapStructure.selectedZone = null
+            else
+                marker.relatedObject.mapStructure.selectedZone = marker.relatedObject
+
+        });
+
+        this.layerObject.on('dragend', function(event) {
+            var marker = event.target;
+            if (!marker.relatedObject instanceof Zone)
+                return
+            var position = marker.getLatLng();
+            marker.setLatLng(new L.LatLng(position.lat, position.lng));
+            marker.relatedObject.updateZoneDataCoordinates(position.lat, position.lng)
+         });
+    }
+
+    updateZoneDataCoordinates(lat, lng) {
+        this.zoneData.lat = lat
+        this.zoneData.lng = lng
+    }
+
+    setIcon(icon) {
+        if (!this.layerObject instanceof L.Marker)
+            return
+        this.layerObject.setIcon(icon)
+    }
+
+    getIcon() {
+        if (!this.layerObject instanceof L.Marker)
+            return
+        return this.layerObject.options.icon
     }
 }
 
