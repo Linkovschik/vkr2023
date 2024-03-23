@@ -6,6 +6,7 @@ plugins {
 	kotlin("jvm") version "1.7.22"
 	kotlin("plugin.spring") version "1.7.22"
 	kotlin("plugin.jpa") version "1.7.22"
+	kotlin("plugin.noarg") version "1.9.23"
 }
 
 group = "com.example"
@@ -38,6 +39,13 @@ dependencies {
 	implementation("io.github.piruin:geok:1.2.2")
 	// https://mvnrepository.com/artifact/org.postgresql/postgresql
 	implementation("org.postgresql:postgresql:42.2.24")
+	// https://mvnrepository.com/artifact/org.hibernate/hibernate-core
+	implementation("org.hibernate:hibernate-core:6.2.7.Final")
+	// https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib
+	implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.23")
+
+
+
 }
 
 tasks.withType<KotlinCompile> {

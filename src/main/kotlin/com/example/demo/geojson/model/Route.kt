@@ -4,6 +4,7 @@ import java.sql.Time
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
+
 data class Route (
         val id: Int? = null,
         val segments: List<RouteSegment>,
