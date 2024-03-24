@@ -87,14 +87,13 @@ var zoneComp = {
                     oldVal.layerObject.options.draggable = false
                     oldVal.layerObject.dragging.disable();
                 }
-                oldVal.setIcon(this.selectedZoneSavedIcon)
+                this.setZoneUnSelectedStyle(oldVal)
             }
 
             if (newVal) {
                 newVal.layerObject.options.draggable = true
                 newVal.layerObject.dragging.enable();
-                this.selectedZoneSavedIcon = newVal.getIcon()
-                newVal.setIcon(this.mapStructure.redIcon)
+                this.setZoneSelectedStyle(newVal)
                 this.mapState = this.mapStatesEnum.ZoneEdit
             }
 
@@ -173,6 +172,14 @@ var zoneComp = {
         },
         setZonePreSavedStyle(zone) {
             zone.setIcon(this.mapStructure.greenIcon)
+        },
+        setZoneSelectedStyle(zone) {
+            this.selectedZoneSavedIcon = newVal.getIcon()
+            zone.setIcon(this.mapStructure.redIcon)
+        },
+        setZoneUnSelectedStyle(zone) {
+            zone.setIcon(this.selectedZoneSavedIcon)
+            this.selectedZoneSavedIcon = null
         },
         onPutZone() {
             this.mapState = this.mapStatesEnum.PutZone
