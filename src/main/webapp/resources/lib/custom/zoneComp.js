@@ -56,7 +56,10 @@ var zoneComp = {
                        <hr/>
 
                        <div v-if="mapStructure && mapStructure.selectedZone && mapState == mapStatesEnum.ZoneEdit">
-                           <zone-edit :selectedZone=mapStructure.selectedZone>
+                           <zone-edit :selectedZone=mapStructure.selectedZone
+                                      :savedZones=savedZones
+                                      :tempZones=tempZones
+                           >
                            </zone-edit>
                        </div>
                    </div>`,

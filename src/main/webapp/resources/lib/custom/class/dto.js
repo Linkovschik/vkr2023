@@ -1,20 +1,12 @@
-const MapStatesEnum = { "PutRouteStart": 0, "PutRouteEnd": 1, "BuildRoute": 2, "Algorithm": 3, "RouteEdit": 4 };
+const MapStatesEnum = { "PutRouteStart": 5, "PutRouteEnd": 1, "BuildRoute": 2, "Algorithm": 3, "RouteEdit": 4 };
 
-const ZoneMapStatesEnum = {"Default" : 0 ,"PutZone": 1, "ZoneEdit": 2};
-
-const IndexZObjectKeepTypeMap = new Map([
-  ["temp", 1],
-  ["cache", 2]
-]);
+const ZoneMapStatesEnum = {"Default" : 3 ,"PutZone": 1, "ZoneEdit": 2};
 
 class MapStructure {
     constructor(map) {
         this.map = map
         this.mapState = MapStatesEnum.Algorithm
-        this.mapObjects = []
-        this.mapTempObjects = []
         this.figuresOnMap = L.layerGroup([]).addTo(map)
-        this.tempFiguresOnMap = L.layerGroup([]).addTo(map)
         this.greenIcon = new L.Icon({
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -50,82 +42,6 @@ class MapStructure {
 
         this.selectedRoute = null
         this.selectedZone = null
-        this.adjustLayerZIndexes()
-    }
-
-    adjustLayerZIndexes() {
-        this.map.on('layeradd',function(event){
-           if (IndexZObjectKeepTypeMap.get("temp") == event.layer.ZIndex && event.layer instanceof L.Path)
-            event.layer.bringToFront()
-        });
-    }
-
-    setSelectedRoute(route) {
-        if (this.mapState != MapStatesEnum.Algorithm && this.mapState != MapStatesEnum.RouteEdit)
-            return
-
-        if (!route instanceof Route)
-            return
-
-        if (this.selectedRoute === route && this.mapState == MapStatesEnum.RouteEdit) {
-            this.selectedRoute = null
-            this.mapState = MapStatesEnum.Algorithm
-            return
-        }
-
-        this.mapState = MapStatesEnum.RouteEdit
-        this.selectedRoute = route
-    }
-
-
-    addObjectToBothMapAndTemp(mapLayerObject) {
-        this.tempFiguresOnMap.addLayer(mapLayerObject.layerObject)
-        this.mapTempObjects.push(mapLayerObject)
-    }
-
-    popObjectFromTempAndMap() {
-        var res = this.mapTempObjects.pop()
-        this.tempFiguresOnMap.removeLayer(res.layerObject)
-        return res
-    }
-
-    removeObjectFromBothMapAndTemp(mapLayerObject) {
-        for(var i = 0; i < this.mapTempObjects.length; i++) {
-            if(this.mapTempObjects[i] === mapLayerObject) {
-                this.tempFiguresOnMap.removeLayer(this.mapTempObjects[i].layerObject)
-                this.mapTempObjects.splice(i, 1);
-                break;
-            }
-        }
-    }
-
-    clearObjectsFromBothMapAndTemp() {
-        this.mapTempObjects.forEach(element => {
-            this.tempFiguresOnMap.removeLayer(element.layerObject)
-        })
-        this.mapTempObjects = []
-    }
-
-    addObjectToBothMapAndCache(mapLayerObject) {
-        this.figuresOnMap.addLayer(mapLayerObject.layerObject)
-        this.mapObjects.push(mapLayerObject)
-    }
-
-    removeObjectFromBothMapAndCache(mapLayerObject) {
-        for(var i = 0; i < this.mapObjects.length; i++) {
-            if(this.mapObjects[i] === mapLayerObject) {
-                this.figuresOnMap.removeLayer(this.mapObjects[i].layerObject)
-                this.mapObjects.splice(i, 1);
-                break;
-            }
-        }
-    }
-
-    clearObjectsFromBothMapAndCache() {
-        this.mapObjects.forEach(element => {
-            this.figuresOnMap.removeLayer(element.layerObject)
-        })
-        this.mapObjects = []
     }
 
     addObjectOnMap(mapLayerObject) {
@@ -151,21 +67,11 @@ class MapLayerObject {
     }
 
     addOnMap() {
-        this.layerObject.ZIndex=IndexZObjectKeepTypeMap.get("temp")
-        this.mapStructure.addObjectToBothMapAndTemp(this)
+        this.mapStructure.addObjectOnMap(this)
     }
 
     removeFromMap() {
-        this.mapStructure.removeObjectFromBothMapAndTemp(this)
-    }
-
-    addOnMapCache() {
-        this.layerObject.ZIndex=IndexZObjectKeepTypeMap.get("cache")
-        this.mapStructure.addObjectToBothMapAndCache(this)
-    }
-
-    removeFromMapCache() {
-        this.mapStructure.removeObjectFromBothMapAndCache(this)
+        this.mapStructure.removeObjectFromMap(this)
     }
 
 }
@@ -226,7 +132,10 @@ class Point extends MapLayerObject {
             if (parent == null)
                 return
 
-            parent.markAsSelected()
+            if (marker.relatedObject.mapStructure.selectedRoute)
+                marker.relatedObject.mapStructure.selectedRoute = null
+            else
+                marker.relatedObject.mapStructure.selectedRoute = parent
          });
     }
 
@@ -243,7 +152,16 @@ class Point extends MapLayerObject {
     }
 
     toggleDraggable() {
-        marker.options.draggable = !this.draggable
+        if (this.layerObject.dragging) {
+            if (this.layerObject.options.draggable) {
+                this.layerObject.options.draggable = false
+                this.layerObject.dragging.disable();
+            }
+            else {
+                this.layerObject.options.draggable = true
+                this.layerObject.dragging.enable();
+            }
+        }
     }
 
     mapToSendModel() {
@@ -255,10 +173,6 @@ class Point extends MapLayerObject {
 
     addOnMap() {
         super.addOnMap()
-    }
-
-    addOnMapCache() {
-        super.addOnMapCache()
     }
 
     addParent(parent) {
@@ -359,46 +273,19 @@ class Route extends MapLayerObject {
 
     }
 
-    markAsSelected() {
-        this.mapStructure.setSelectedRoute(this)
-    }
-
     removeFromMap() {
         this.start.removeFromMap()
         super.removeFromMap()
         this.end.removeFromMap()
     }
 
-    removeFromMapCache() {
-        this.start.removeFromMapCache()
-        super.removeFromMapCache()
-        this.end.removeFromMapCache()
-    }
-
     addOnMap() {
         if (!this.layerObject instanceof L.Polyline)
             return
 
-        this.layerObject.setStyle({
-            color: 'blue'
-        });
-
         this.start.addOnMap()
         super.addOnMap()
         this.end.addOnMap()
-    }
-
-    addOnMapCache() {
-        if (!this.layerObject instanceof L.Polyline)
-            return
-
-        this.layerObject.setStyle({
-            color: 'black'
-        });
-
-        this.start.addOnMapCache()
-        super.addOnMapCache()
-        this.end.addOnMapCache()
     }
 
     mapToSendModel() {

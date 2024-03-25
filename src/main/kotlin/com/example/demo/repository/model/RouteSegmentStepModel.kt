@@ -7,7 +7,7 @@ import jakarta.persistence.*
 class RouteSegmentStepModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Int? = null
+    var id: Int? = null
 
     @Column(nullable = false)
     var distance: Double = 0.0

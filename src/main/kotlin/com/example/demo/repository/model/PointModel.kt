@@ -7,7 +7,7 @@ import jakarta.persistence.*
 class PointModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Int? = null
+    var id: Int? = null
 
     @Column
     var lng: Double = 0.0

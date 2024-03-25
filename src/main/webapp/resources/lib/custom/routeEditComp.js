@@ -4,6 +4,16 @@ var routeEditComp = {
           type: Object,
           required: false,
           default: { routeData: {}}
+        },
+        tempRoutes: {
+            type: Array,
+            required: false,
+            default: () => []
+        },
+        savedRoutes: {
+            type: Array,
+            required: false,
+            default: () => []
         }
      },
      data() {
@@ -56,6 +66,8 @@ var routeEditComp = {
                             <label>по</label>
                             <input type="time" v-model="selectedRoute.routeData.endTimeMax" min="06:00:00" max="10:00:00" step="2"/>
                         </div>
+                        <br />
+                       <button type="button" id="deleteRouteButton" class="btn btn-primary " v-on:click="deleteSelectedRoute()">Удалить маршрут</button>
                     </div>`,
 
     computed: {
@@ -165,6 +177,28 @@ var routeEditComp = {
         }
     },
     methods: {
+        deleteSelectedRoute() {
+            this.selectedRoute.mapStructure.selectedRoute = null
+            this.selectedRoute.removeFromMap()
+            this.removeFromTempRoutes(this.selectedRoute)
+            this.removeFromSavedRoutes(this.selectedRoute)
+        },
+        removeFromSavedRoutes(route) {
+            for(var i = 0; i < this.savedRoutes.length; i++) {
+                if(this.savedRoutes[i] === route) {
+                    this.savedRoutes.splice(i, 1);
+                    break;
+                }
+            }
+        },
+        removeFromTempRoutes(route) {
+            for(var i = 0; i < this.tempRoutes.length; i++) {
+                if(this.tempRoutes[i] === route) {
+                    this.tempRoutes.splice(i, 1);
+                    break;
+                }
+            }
+        },
         checkStartTimeMin() {
             if (!this.startTimeMin)
                 return

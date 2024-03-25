@@ -18,8 +18,8 @@ class RouteModelMapper {
         val routeModel = RouteModel()
             .apply {
                 id = route.id
-                segments = route.segments.mapNotNull { mapRouteSegmentToModel(it) }
-                coordinates = route.coordinates.mapNotNull { mapPointToPointModel(it) }
+                segments = route.segments.mapNotNull { mapRouteSegmentToModel(it) }.toMutableList()
+                coordinates = route.coordinates.mapNotNull { mapPointToPointModel(it) }.toMutableList()
                 distance = route.distance
                 duration = route.duration
                 startPoint = mapPointToPointModel(route.start)
@@ -46,7 +46,7 @@ class RouteModelMapper {
                 endPoint = mapPointToPointModel(routeSegment.getEndPoint())
                 distance = routeSegment.distance
                 duration = routeSegment.duration
-                steps = routeSegment.steps.mapNotNull { mapStepToStepModel(it) }
+                steps = routeSegment.steps.mapNotNull { mapStepToStepModel(it) }.toMutableList()
             }
 
 

@@ -1,6 +1,5 @@
 package com.example.demo.repository.model
 
-import com.example.demo.geojson.model.MyPoint
 import jakarta.persistence.*
 import java.sql.Time
 import java.util.*
@@ -13,10 +12,10 @@ class RouteModel {
     var id: Int? = null
 
     @OneToMany(cascade = [CascadeType.ALL])
-    var segments: List<RouteSegmentModel> = emptyList()
+    var segments: MutableList<RouteSegmentModel> = mutableListOf()
 
     @OneToMany(cascade = [CascadeType.ALL])
-    var coordinates: List<PointModel> = emptyList()
+    var coordinates: MutableList<PointModel> = mutableListOf()
 
     @Column(nullable = false)
     var distance: Double = 0.0

@@ -13,10 +13,15 @@ var comp = {
         return {
             map: null,
             mapStatesEnum: MapStatesEnum,
+            mapState: MapStatesEnum.Algorithm,
             mapStructure: null,
             buildRouteTemp: null,
+            tempRoutes: [],
+            savedRoutes: [],
+            tempPoints: [],
             unselectedRouteColor: "black",
-            selectedRouteColor: "red"
+            selectedRouteColor: "red",
+            selectedRouteSavedColor: "red"
         }
     },
     mounted() {
@@ -46,125 +51,158 @@ var comp = {
                        <button type="button" id="startButton" class="btn btn-primary" v-on:click="onPutRouteStart()">Указать начало</button>
                        <button type="button" id="endButton" class="btn btn-primary d-none" v-on:click="onPutRouteEnd()">Указать конец</button>
                        <button type="button" id="buildRoute" class="btn btn-primary " v-on:click="onBuildRoute()" >Построить маршрут</button>
-                       <button type="button" id="updateTempRoutesButton" class="btn btn-primary " v-on:click="updateTempRoutesToDatabase()">Добавить созданные маршруты к зафиксированным</button>
-                       <button type="button" id="clearTemp" class="btn btn-primary " v-on:click="clearTempObjects()">Убрать несохранённые объекты</button>
-                       <button type="button" id="clearCache" class="btn btn-primary " v-on:click="clearCacheObjects()">Убрать загруженные объекты</button>
+                       <button type="button" id="updateTempRoutesButton" class="btn btn-primary " v-on:click="addTempRoutesToSavedRoutes()">Добавить созданные маршруты к зафиксированным</button>
+                       <button type="button" id="clearTemp" class="btn btn-primary " v-on:click="clearTempRoutes()">Убрать несохранённые объекты</button>
+                       <button type="button" id="clearCache" class="btn btn-primary " v-on:click="clearSavedRoutes()">Убрать загруженные объекты</button>
 
                        <br/>
                        <hr/>
 
-                       <button type="button" id="updateRoutesButton" class="btn btn-primary " v-on:click="updateRoutesToDatabase()">Обновить имеющиеся на карте маршруты</button>
-                       <button type="button" id="loadRoutesButton" class="btn btn-primary " v-on:click="loadRouteFromDatabase()">Загрузить маршруты из базы данных</button>
+                       <button type="button" id="updateRoutesButton" class="btn btn-primary " v-on:click="saveRoutes()">Обновить имеющиеся на карте маршруты</button>
+                       <button type="button" id="loadRoutesButton" class="btn btn-primary " v-on:click="loadRoutes()">Загрузить маршруты из базы данных</button>
                        <button type="button" id="algorithmButton" class="btn btn-primary " v-on:click="startAlgorithm()">Перестроить маршруты по алгоритму</button>
 
                        <br />
                        <hr/>
 
-                       <div v-if="mapStructure && mapStructure.selectedRoute && mapStructure.mapState == mapStatesEnum.RouteEdit">
-                           <route-edit :selectedRoute=mapStructure.selectedRoute>
+                       <div v-if="mapStructure && mapStructure.selectedRoute && mapState == mapStatesEnum.RouteEdit">
+                           <route-edit :selectedRoute=mapStructure.selectedRoute
+                                       :savedRoutes=savedRoutes
+                                       :tempRoutes=tempRoutes
+                           >
                            </route-edit>
                        </div>
                    </div>`,
 
     computed: {
-        mapState() {
-            if (!this.mapStructure)
-                return null
-            return this.mapStructure.mapState
-        },
-        mapStateKey() {
-            if (!this.mapStructure)
-                return null
-            return this.getMapStateEnumKeyByValue(this.mapStructure.mapState)
-        },
         selectedRoute() {
             if (!this.mapStructure)
                 return null
             return this.mapStructure.selectedRoute;
         },
-        mapTempObjects() {
-            if (!this.mapStructure)
-                return null
-            return this.mapStructure.mapTempObjects;
-        },
-        mapCacheObjects() {
-            if (!this.mapStructure)
-                return null
-            return this.mapStructure.mapObjects;
+        allRoutes() {
+             return this.tempRoutes.concat(this.savedRoutes)
         }
     },
     watch: {
-        mapState: function(newState, oldState) {
-            if (!newState && newState != 0)
-                return
+        mapState: function(newVal, oldVal) {
+            if (newVal) {
+                if (oldVal == this.mapStatesEnum.RouteEdit)
+                    this.mapStructure.selectedRoute = null
 
-            console.log('Map state changed to: ' + newState)
-
-            if (oldState == this.mapStatesEnum.RouteEdit && this.selectedRoute) {
-                this.mapStructure.selectedRoute = null
+                console.log('Map state changed to: ' + newVal)
             }
         },
         selectedRoute: function(newVal, oldVal) {
             if (oldVal) {
-                this.restoreSelectedRouteStyle(oldVal)
+                this.setRouteUnSelectedStyle(oldVal)
             }
+
             if (newVal) {
-                this.unselectedRouteColor = newVal.layerObject.options.color
-                this.setSelectedRouteStyle(newVal)
+                this.setRouteSelectedStyle(newVal)
+                this.mapState = this.mapStatesEnum.RouteEdit
+            }
+
+            if (newVal == null &&  this.mapState == this.mapStatesEnum.RouteEdit) {
+                this.mapState = this.mapStatesEnum.Algorithm
             }
         },
-        mapTempObjects: function(newVal, oldVal) {
-            if (oldVal && oldVal.includes(this.selectedRoute) && newVal && !newVal.includes(this.selectedRoute)) {
-                this.mapStructure.selectedRoute = null
+        tempRoutes: function(newVal, oldVal) {
+            if (newVal) {
+                for (const route of newVal) {
+                    if (this.savedRoutes.includes(route))
+                        this.setRoutePreSavedStyle(route)
+                    else
+                        this.setRouteTempStyle(route)
+                }
             }
         },
-        mapCacheObjects: function(newVal, oldVal) {
-            if (oldVal && oldVal.includes(this.selectedRoute) && newVal && !newVal.includes(this.selectedRoute)) {
-                this.mapStructure.selectedRoute = null
+        savedRoutes: function(newVal, oldVal) {
+            if (newVal) {
+                for (const route of newVal) {
+                    if (this.tempRoutes.includes(route))
+                        this.setRoutePreSavedStyle(route)
+                    else
+                        this.setRouteSavedStyle(route)
+                }
             }
         }
     },
     methods: {
-        setSelectedRouteStyle(route) {
-            var selectedRouteColor = this.selectedRouteColor
+        resetSelectedRoute() {
+            this.mapStructure.selectedRoute = null
+        },
+        setRouteTempStyle(route) {
             route.layerObject.setStyle({
-                color: selectedRouteColor
+                color: "blue"
             });
         },
-        restoreSelectedRouteStyle(route) {
-            var unselectedColor = this.unselectedRouteColor
+        setRouteSavedStyle(route) {
             route.layerObject.setStyle({
-                color: unselectedColor
+                color: "black"
             });
         },
-        getMapStateEnumKeyByValue(val) {
-            return Object.keys(MapStatesEnum).find(
-                key => MapStatesEnum[key] === val
-            )
+        setRoutePreSavedStyle(route) {
+            route.layerObject.setStyle({
+                color: "green"
+            });
         },
-        updateTempRoutesToDatabase() {
-            var tempRoutes = this.mapStructure.mapTempObjects.filter(obj => obj instanceof Route)
-            var mapStructure = this.mapStructure
-
-            tempRoutes.forEach((tempRoute) => tempRoute.removeFromMap(tempRoute))
-            tempRoutes.forEach((tempRoute) => tempRoute.addOnMapCache(tempRoute))
-
-            if (tempRoutes.includes(this.selectedRoute)) {
-                this.unselectedRouteColor = this.selectedRoute.layerObject.options.color
-                this.mapStructure.selectedRoute = null
+        setRouteSelectedStyle(route) {
+            this.selectedRouteSavedColor = route.layerObject.options.color
+            route.layerObject.setStyle({
+                color: "red"
+            });
+        },
+        setRouteUnSelectedStyle(route) {
+            if (this.selectedRouteSavedColor) {
+                route.layerObject.setStyle({
+                    color: this.selectedRouteSavedColor
+                });
+            }
+            else {
+                route.layerObject.setStyle({
+                    color: "black"
+                });
             }
         },
-        clearCacheObjects() {
-            var mapStructure = this.mapStructure
-            mapStructure.clearObjectsFromBothMapAndCache()
+        addTempRoutesToSavedRoutes() {
+            this.savedRoutes = this.tempRoutes.concat(this.savedRoutes)
+            this.resetSelectedRoute()
         },
-        clearTempObjects() {
-            var mapStructure = this.mapStructure
-            mapStructure.clearObjectsFromBothMapAndTemp()
+        clearTempRoutes() {
+            for (const route of this.tempRoutes) {
+                route.removeFromMap()
+            }
+            this.tempRoutes = []
+            this.resetSelectedRoute()
         },
-        updateRoutesToDatabase() {
-
-            var loadRoutes = this.mapStructure.mapObjects.filter(obj => obj instanceof Route).map(obj => obj.routeData)
+        clearSavedRoutes() {
+            for (const route of this.savedRoutes) {
+                route.removeFromMap()
+            }
+            this.savedRoutes = []
+            this.resetSelectedRoute()
+        },
+        removeFromSavedRoutes(route) {
+            for(var i = 0; i < this.savedRoutes.length; i++) {
+                if(this.savedRoutes[i] === route) {
+                    this.savedRoutes.splice(i, 1);
+                    break;
+                }
+            }
+            this.resetSelectedRoute()
+        },
+        removeFromTempRoutes(route) {
+            for(var i = 0; i < this.tempRoutes.length; i++) {
+                if(this.tempRoutes[i] === route) {
+                    this.tempRoutes.splice(i, 1);
+                    break;
+                }
+            }
+            this.resetSelectedRoute()
+        },
+        saveRoutes() {
+            var loadRoutes = this.savedRoutes.filter(obj => obj instanceof Route).map(obj => obj.routeData)
             var routeDataToSave = {
                 routes: loadRoutes
             }
@@ -182,22 +220,29 @@ var comp = {
                     var err = textStatus + ', ' + error;
                 })
         },
-        loadRouteFromDatabase() {
-            var mapStructure = this.mapStructure
-            mapStructure.clearObjectsFromBothMapAndCache()
+        loadRoutes() {
+            var loadedRouteData = []
             $.getJSON({
                     url: '/home/loadRoutes',
                     async: false
                 })
                 .done(function(routeDataList) {
                     routeDataList.forEach((routeData) => {
-                        var route = new Route(routeData, mapStructure)
-                        route.addOnMapCache()
+                        loadedRouteData.push(routeData)
                     });
                 })
                 .fail(function(jqxhr, textStatus, error) {
                     var err = textStatus + ', ' + error;
                 })
+
+            this.clearSavedRoutes()
+            for (const routeData of loadedRouteData) {
+                var route = new Route(routeData, this.mapStructure)
+                route.addOnMap()
+                this.savedRoutes.push(route);
+            }
+
+            this.resetSelectedRoute()
         },
         buildRoute(routeStart, routeEnd) {
             var route = null
@@ -210,7 +255,7 @@ var comp = {
                 end: {
                     lng: routeEnd.lng,
                     lat: routeEnd.lat
-                },
+                }
             }
 
             var data = JSON.stringify(routeBuildData);
@@ -226,7 +271,6 @@ var comp = {
                     if (!routeData.length)
                         throw new Error("Built route is undefiend or null")
                     route = routeData[0]
-
                 })
                 .fail(function(jqxhr, textStatus, error) {
                     var err = textStatus + ', ' + error;
@@ -236,16 +280,16 @@ var comp = {
             return route
         },
         onPutRouteStart() {
-            this.mapStructure.mapState = MapStatesEnum.PutRouteStart
+            this.mapState = this.mapStatesEnum.PutRouteStart
         },
         onPutRouteEnd() {
-            this.mapStructure.mapState = MapStatesEnum.PutRouteEnd
+            this.mapState = this.mapStatesEnum.PutRouteEnd
         },
         onBuildRoute() {
-            this.mapStructure.mapState = MapStatesEnum.BuildRoute
+            this.mapState = this.mapStatesEnum.BuildRoute
 
             if (!this.buildRouteTemp.isBuildRouteTempCompleted()) {
-                this.mapStructure.mapState = MapStatesEnum.Algorithm
+                this.mapState = this.mapStatesEnum.Algorithm
                 return
             }
 
@@ -255,26 +299,27 @@ var comp = {
             var routeData = this.buildRoute(polyStart, polyEnd)
             var route = new Route(routeData, this.mapStructure)
             route.addOnMap()
+            this.tempRoutes.push(route)
 
             this.buildRouteTemp.clearBuildRouteTemp()
 
-            this.mapStructure.mapState = MapStatesEnum.Algorithm
+            this.mapState = this.mapStatesEnum.Algorithm
         },
         onMapClick(e) {
-            if (this.mapStructure.mapState == MapStatesEnum.PutRouteStart) {
+            if (this.mapState == this.mapStatesEnum.PutRouteStart) {
                 var point = new StartPoint(e.latlng.lat, e.latlng.lng, this.mapStructure)
 
                 this.buildRouteTemp.setBuildRouteTempStartPoint(point)
 
-                this.mapStructure.mapState = MapStatesEnum.Algorithm
+                this.mapState = this.mapStatesEnum.Algorithm
             }
 
-            if (this.mapStructure.mapState == MapStatesEnum.PutRouteEnd) {
+            if (this.mapState == this.mapStatesEnum.PutRouteEnd) {
                 var point = new EndPoint(e.latlng.lat, e.latlng.lng, this.mapStructure)
 
                 this.buildRouteTemp.setBuildRouteTempEndPoint(point)
 
-                this.mapStructure.mapState = MapStatesEnum.Algorithm
+                this.mapState = this.mapStatesEnum.Algorithm
             }
         },
         startAlgorithm() {
@@ -282,8 +327,9 @@ var comp = {
             var routeDataToSave = {
                 routes: this.mapStructure.mapObjects.filter(obj => obj instanceof Route).map(obj => obj.routeData)
             }
-            var mapStructure = this.mapStructure
+
             var data = JSON.stringify(routeDataToSave);
+            var routeDataList = []
             $.ajax({
                     url: '/home/startAlgorithm',
                     method: 'post',
@@ -295,13 +341,19 @@ var comp = {
                 .done(function(routeDataList) {
                     mapStructure.clearObjectsFromBothMapAndCache()
                     routeDataList.forEach((routeData) => {
-                        var route = new Route(routeData, mapStructure)
-                        route.addOnMap()
+                        routeDataList.push(routeData)
                     });
                 })
                 .fail(function(jqxhr, textStatus, error) {
                     var err = textStatus + ', ' + error;
                 })
+
+            for (const routeData of routeDataList) {
+                var route = new Route(routeData, mapStructure)
+                route.addOnMap()
+
+                this.tempRoutes.push(zone);
+            }
         }
     }
 };
