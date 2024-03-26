@@ -24,11 +24,11 @@ class RouteSegmentStepModel {
     @Column(nullable = false)
     var name: String = ""
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
     @JoinColumn(name = "startPointId")
     var start: PointModel? = null
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
     @JoinColumn(name = "endPointId")
     var end: PointModel? = null
 }

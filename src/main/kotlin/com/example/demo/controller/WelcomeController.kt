@@ -6,10 +6,15 @@ import com.example.demo.geojson.model.MyPoint
 import com.example.demo.geojson.model.Route
 import com.example.demo.geojson.model.Zone
 import com.example.demo.geojson.service.MappingService
+import com.example.demo.repository.impl.PointRepository
 import com.example.demo.repository.impl.RouteRepository
+import com.example.demo.repository.impl.SegmentRepository
 import com.example.demo.repository.impl.ZoneRepository
 import com.example.demo.repository.mapper.RouteModelMapper
 import com.example.demo.repository.mapper.ZoneModelMapper
+import com.example.demo.repository.model.PointModel
+import com.example.demo.repository.model.RouteModel
+import com.example.demo.repository.model.ZoneModel
 import com.example.demo.retrofit.DrivingService
 import com.example.demo.web.RouteBuildModel
 import com.example.demo.web.UpdateRoutesModel
@@ -42,6 +47,12 @@ class WelcomeController {
 
     @Autowired
     private lateinit var routeRepository: RouteRepository
+
+    @Autowired
+    private lateinit var segmentRepository: SegmentRepository
+
+    @Autowired
+    private lateinit var pointRepository: PointRepository
 
     @Autowired
     private lateinit var zoneRepository: ZoneRepository
@@ -96,10 +107,14 @@ class WelcomeController {
 
     @PutMapping("/updateRoutes")
     @ResponseStatus(value = HttpStatus.OK)
-    fun updateRoutes(@RequestBody updateRoutesModel: UpdateRoutesModel) {
+    fun updateRoutes(@RequestBody updateRoutesModel: UpdateRoutesModel) : UpdateRoutesModel {
         routeTable.clear()
         routeTable.addAll(updateRoutesModel.routes)
-        writeRoutesToFile(updateRoutesModel)
+        val savedRoutes = writeRoutesToFile(updateRoutesModel)
+        return UpdateRoutesModel()
+            .apply {
+                routes = savedRoutes.mapNotNull { routeModelMapper.mapRouteModelToRoute(it)}
+            }
     }
 
     @PutMapping("/updateZones")
@@ -138,8 +153,8 @@ class WelcomeController {
         val file = File(filePath)
         file.writeText(jsonString)
 
-        zoneRepository.deleteAll()
-        zoneRepository.flush()
+        //zoneRepository.deleteAll()
+        //zoneRepository.flush()
         zoneRepository.saveAllAndFlush(updateZonesModel.savedZones.map { zoneModelMapper.mapZoneToZoneModel(it) })
     }
 
@@ -157,15 +172,48 @@ class WelcomeController {
     private fun writeRoutesToFile(
         updateRoutesModel: UpdateRoutesModel,
         filePath: String = "D:\\VKR\\project\\fakeDB\\fakeDB.txt"
-    ) {
+    ) : MutableList<RouteModel> {
         val gson = Gson()
         val jsonString: String = gson.toJson(updateRoutesModel)
         val file = File(filePath)
         file.writeText(jsonString)
 
-        routeRepository.deleteAll()
+        val existingRouteList = routeRepository.findAll()
+        val existingRouteIdList = existingRouteList.map { it.id }
+
+        // create new
+        routeRepository.saveAll(updateRoutesModel
+            .routes
+            .filter { !existingRouteIdList.contains(it.id) }
+            .map {
+                routeModelMapper.mapRouteToRouteModel(it)
+            }
+        )
+
+        // update existing
+        updateRoutesModel
+            .routes
+            .forEach {
+                val routeModel = it.id?.let { r -> routeRepository.findById(r).orElse(null) }
+                if (routeModel != null)
+                    updateRouteModelData(routeModel, it)
+            }
+
+        // delete not existing
+        existingRouteIdList
+            .filter { !updateRoutesModel.routes.map { it.id }.contains(it) }
+            .forEach {
+                val routeModelToDelete = it?.let { r -> routeRepository.findById(r).orElse(null) }
+                if (routeModelToDelete != null)
+                    routeRepository.delete(routeModelToDelete)
+            }
+
+
         routeRepository.flush()
-        routeRepository.saveAllAndFlush(updateRoutesModel.routes.map { routeModelMapper.mapRouteToRouteModel(it) })
+        segmentRepository.flush()
+        pointRepository.flush()
+
+        return routeRepository.findAll()
     }
 
     private fun readRoutesFromFile(filePath: String = "D:\\VKR\\project\\fakeDB\\fakeDB.txt"): UpdateRoutesModel {
@@ -176,6 +224,51 @@ class WelcomeController {
             return UpdateRoutesModel()
         //return gson.fromJson(result, UpdateRoutesModel::class.java)
 
-        return UpdateRoutesModel(routeRepository.findAll().mapNotNull { routeModelMapper.mapRouteModelToRouteTo(it) })
+        return UpdateRoutesModel(routeRepository.findAll().mapNotNull { routeModelMapper.mapRouteModelToRoute(it) })
+    }
+
+    private fun updateRouteModelData(routeModelToUpdate: RouteModel?, route: Route?) {
+        if (routeModelToUpdate == null || route == null) return
+        if (routeModelToUpdate.id != route.id) return
+
+        routeModelToUpdate.name = route.name
+        routeModelToUpdate.startTimeMin = route.startTimeMin
+        routeModelToUpdate.startTimeMax = route.startTimeMax
+        routeModelToUpdate.endTimeMin = route.endTimeMin
+        routeModelToUpdate.endTimeMax = route.endTimeMax
+
+        routeModelToUpdate.distance = route.distance
+        routeModelToUpdate.duration = route.duration
+        routeModelToUpdate.startTime = route.startTime
+        routeModelToUpdate.endTime = route.endTime
+
+        val segmentsToClearIds = routeModelToUpdate.segments.map { it.id }
+        routeModelToUpdate.segments.clear()
+        routeModelToUpdate.segments.addAll( route.segments.mapNotNull { routeModelMapper.mapRouteSegmentToModel(it) }.toMutableList())
+        segmentRepository.deleteAll(segmentRepository.findAllById(segmentsToClearIds))
+
+        val pointsToClearById = routeModelToUpdate.coordinates.map { it.id }
+        routeModelToUpdate.coordinates.clear()
+        routeModelToUpdate.coordinates.addAll(route.coordinates.mapNotNull { routeModelMapper.mapPointToPointModel(it) }.toMutableList())
+        pointRepository.deleteAll(pointRepository.findAllById(pointsToClearById))
+
+        routeModelToUpdate.startPoint = null
+        routeModelToUpdate.startPoint = routeModelMapper.mapPointToPointModel(route.start)
+        routeModelToUpdate.endPoint = null
+        routeModelToUpdate.endPoint = routeModelMapper.mapPointToPointModel(route.end)
+
+        routeRepository.save(routeModelToUpdate)
+    }
+
+    private fun updateZoneModel(zoneModel: ZoneModel?, zone: Zone?) {
+        if (zoneModel == null || zone == null) return
+        if (zoneModel.id != zone.id) return
+
+        zoneModel.congestion = zone.congestion
+        zoneModel.point = PointModel()
+            .apply {
+                lat = zone.lat
+                lng = zone.lng
+            }
     }
 }

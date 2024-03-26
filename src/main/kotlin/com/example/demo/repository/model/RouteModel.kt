@@ -11,10 +11,10 @@ class RouteModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Int? = null
 
-    @OneToMany(cascade = [CascadeType.ALL])
+    @OneToMany(fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
     var segments: MutableList<RouteSegmentModel> = mutableListOf()
 
-    @OneToMany(cascade = [CascadeType.ALL])
+    @OneToMany(fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
     var coordinates: MutableList<PointModel> = mutableListOf()
 
     @Column(nullable = false)
@@ -23,11 +23,11 @@ class RouteModel {
     @Column(nullable = false)
     var duration: Double = 0.0
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
     @JoinColumn(name = "startPointId")
     var startPoint: PointModel? = null
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
     @JoinColumn(name = "endPointId")
     var endPoint: PointModel? = null
 

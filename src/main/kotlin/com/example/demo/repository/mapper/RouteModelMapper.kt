@@ -83,7 +83,7 @@ class RouteModelMapper {
     }
 
 
-    fun mapRouteModelToRouteTo(routeModel: RouteModel?): Route? {
+    fun mapRouteModelToRoute(routeModel: RouteModel?): Route? {
         if (routeModel == null) return null
 
         return Route(

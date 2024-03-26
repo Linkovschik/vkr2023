@@ -219,6 +219,8 @@ var comp = {
                 .fail(function(jqxhr, textStatus, error) {
                     var err = textStatus + ', ' + error;
                 })
+
+            this.loadRoutes()
         },
         loadRoutes() {
             var loadedRouteData = []
