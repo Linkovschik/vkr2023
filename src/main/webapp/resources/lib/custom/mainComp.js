@@ -167,6 +167,7 @@ var comp = {
         },
         addTempRoutesToSavedRoutes() {
             this.savedRoutes = this.tempRoutes.concat(this.savedRoutes)
+            this.tempRoutes = []
             this.resetSelectedRoute()
         },
         clearTempRoutes() {
@@ -327,7 +328,7 @@ var comp = {
         startAlgorithm() {
             console.log("Маршруты перестраиваются")
             var routeDataToSave = {
-                routes: this.mapStructure.mapObjects.filter(obj => obj instanceof Route).map(obj => obj.routeData)
+                routes: this.savedRoutes.filter(obj => obj instanceof Route).map(obj => obj.routeData)
             }
 
             var data = JSON.stringify(routeDataToSave);
@@ -340,10 +341,9 @@ var comp = {
                     contentType: 'application/json; charset=utf-8',
                     async: false,
                 })
-                .done(function(routeDataList) {
-                    mapStructure.clearObjectsFromBothMapAndCache()
-                    routeDataList.forEach((routeData) => {
-                        routeDataList.push(routeData)
+                .done(function(routeData) {
+                    routeData.forEach((route) => {
+                        routeDataList.push(route)
                     });
                 })
                 .fail(function(jqxhr, textStatus, error) {
@@ -351,10 +351,10 @@ var comp = {
                 })
 
             for (const routeData of routeDataList) {
-                var route = new Route(routeData, mapStructure)
+                var route = new Route(routeData, this.mapStructure)
                 route.addOnMap()
 
-                this.tempRoutes.push(zone);
+                this.tempRoutes.push(route);
             }
         }
     }

@@ -131,6 +131,7 @@ var zoneComp = {
         },
         addTempZonesToSavedZones() {
             this.savedZones = this.tempZones.concat(this.savedZones)
+            this.tempZones = []
             this.resetSelectedZone()
         },
         clearTempZones() {
@@ -177,7 +178,7 @@ var zoneComp = {
             zone.setIcon(this.mapStructure.greenIcon)
         },
         setZoneSelectedStyle(zone) {
-            this.selectedZoneSavedIcon = newVal.getIcon()
+            this.selectedZoneSavedIcon = zone.getIcon()
             zone.setIcon(this.mapStructure.redIcon)
         },
         setZoneUnSelectedStyle(zone) {
@@ -207,6 +208,8 @@ var zoneComp = {
                     var err = textStatus + ', ' + error;
                     console.log(err)
                 })
+
+            this.loadZones()
         },
         loadZones() {
 

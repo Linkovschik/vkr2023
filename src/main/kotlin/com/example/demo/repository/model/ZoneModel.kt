@@ -9,7 +9,7 @@ class ZoneModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Int? = null
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
     @JoinColumn(name = "pointId")
     var point: PointModel? = null
 

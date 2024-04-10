@@ -28,7 +28,7 @@ var zoneEditComp = {
     template:`      <div>
                         <label>Id зоны</label>
                         <div>
-                            <input v-model="selectedZone.zoneData.id">
+                            <input readonly v-model="selectedZone.zoneData.id">
                         </div>
                         <label>Загруженность зоны</label>
                         <div>

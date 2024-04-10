@@ -153,9 +153,39 @@ class WelcomeController {
         val file = File(filePath)
         file.writeText(jsonString)
 
-        //zoneRepository.deleteAll()
-        //zoneRepository.flush()
-        zoneRepository.saveAllAndFlush(updateZonesModel.savedZones.map { zoneModelMapper.mapZoneToZoneModel(it) })
+        val existingZoneList = zoneRepository.findAll()
+        val existingZoneIdList = existingZoneList.map { it.id }
+
+        // create new
+        zoneRepository.saveAll(updateZonesModel
+            .savedZones
+            .filter { !existingZoneIdList.contains(it.id) }
+            .map {
+                zoneModelMapper.mapZoneToZoneModel(it)
+            }
+        )
+
+        // update existing
+        updateZonesModel
+            .savedZones
+            .forEach {
+                val zoneModel = it.id?.let { r -> zoneRepository.findById(r).orElse(null) }
+                if (zoneModel != null)
+                    updateZoneModel(zoneModel, it)
+            }
+
+        // delete not existing
+        existingZoneIdList
+            .filter { !updateZonesModel.savedZones.map { it.id }.contains(it) }
+            .forEach {
+                val zoneModelToDelete = it?.let { r -> zoneRepository.findById(r).orElse(null) }
+                if (zoneModelToDelete != null)
+                    zoneRepository.delete(zoneModelToDelete)
+            }
+
+
+        zoneRepository.flush()
+        pointRepository.flush()
     }
 
 
@@ -265,6 +295,7 @@ class WelcomeController {
         if (zoneModel.id != zone.id) return
 
         zoneModel.congestion = zone.congestion
+        zoneModel.point = null
         zoneModel.point = PointModel()
             .apply {
                 lat = zone.lat
