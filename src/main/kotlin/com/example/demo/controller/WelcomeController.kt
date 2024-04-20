@@ -20,12 +20,16 @@ import com.example.demo.web.RouteBuildModel
 import com.example.demo.web.UpdateRoutesModel
 import com.example.demo.web.UpdateZonesModel
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.io.File
+import java.sql.Connection
+import java.sql.PreparedStatement
+import javax.sql.DataSource
 
 
 @Controller
@@ -62,6 +66,9 @@ class WelcomeController {
 
     @Autowired
     private lateinit var zoneModelMapper: ZoneModelMapper
+
+    @Autowired
+    private lateinit var datasource: DataSource
 
     @GetMapping("/welcome")
     fun welcome(model: Model): String {
@@ -107,13 +114,13 @@ class WelcomeController {
 
     @PutMapping("/updateRoutes")
     @ResponseStatus(value = HttpStatus.OK)
-    fun updateRoutes(@RequestBody updateRoutesModel: UpdateRoutesModel) : UpdateRoutesModel {
+    fun updateRoutes(@RequestBody updateRoutesModel: UpdateRoutesModel): UpdateRoutesModel {
         routeTable.clear()
         routeTable.addAll(updateRoutesModel.routes)
         val savedRoutes = writeRoutesToFile(updateRoutesModel)
         return UpdateRoutesModel()
             .apply {
-                routes = savedRoutes.mapNotNull { routeModelMapper.mapRouteModelToRoute(it)}
+                routes = savedRoutes.mapNotNull { routeModelMapper.mapRouteModelToRoute(it) }
             }
     }
 
@@ -142,6 +149,102 @@ class WelcomeController {
         val updateRoutesModel = readRoutesFromFile()
         routeTable.addAll(updateRoutesModel.routes.toMutableList())
         return routeTable
+    }
+
+    @GetMapping("/loadRoutesResult")
+    @ResponseBody
+    fun loadRoutesResult(): List<Route> {
+        val result = arrayListOf<Route>();
+
+        val conn = datasource.connection
+
+        val sql = """
+            select 
+            ird.route_id,
+            ird.distance, 
+            ird.duration,
+            ird.start_lng,
+            ird.start_lat,
+            ird.end_lng,
+            ird.end_lat,
+            ird.start_time_min,
+            ird.start_time_max, 
+            ird.end_time_min,
+            ird.end_time_max,
+            ird.route_name,
+            ird.start_time, 
+            ird.end_time,
+            ird.coordinates
+            from iteration_route_data ird 
+            where ird.iteration_index = ?
+            """.trimIndent()
+        val preparedStatement: PreparedStatement = conn.prepareStatement(sql)
+        val iterationIndex = selectMaxIterationIndex(conn)
+        preparedStatement.setInt(1,iterationIndex)
+
+        val resultSet = preparedStatement.executeQuery()
+
+        while (resultSet.next()) {
+            val routeId = resultSet.getInt(1)
+            result.add(
+                Route(
+                    routeId,
+                    emptyList(),
+                    Gson().fromJson(resultSet.getString(15), object : TypeToken<List<MyPoint>>() {}.type),
+                    //selectRouteCoordinates(conn, iterationIndex, routeId),
+                    resultSet.getDouble(2),
+                    resultSet.getDouble(3),
+                    MyPoint(resultSet.getDouble(4), resultSet.getDouble(5)),
+                    MyPoint(resultSet.getDouble(6), resultSet.getDouble(7)),
+                    resultSet.getTime(8),
+                    resultSet.getTime(9),
+                    resultSet.getTime(10),
+                    resultSet.getTime(11),
+                    resultSet.getString(12),
+                    resultSet.getTime(13),
+                    resultSet.getTime(14)
+                )
+            )
+        }
+
+        return result
+    }
+
+    private fun selectMaxIterationIndex(conn: Connection): Int {
+        val sql = """
+            select MAX(ird.iteration_index) from iteration_route_data ird;
+            """.trimIndent()
+        val preparedStatement: PreparedStatement = conn.prepareStatement(sql)
+
+        val resultSet = preparedStatement.executeQuery()
+
+        if (resultSet.next())
+            return resultSet.getInt(1)
+        else
+            return 0
+
+    }
+
+    private fun selectRouteCoordinates(conn: Connection, iterationIndex: Int, routeId: Int):  List<MyPoint>{
+        val result = mutableListOf<MyPoint>()
+
+        val sql = """
+            select irmd.lng, irmd.lat 
+            from iteration_route_modeling_data irmd 
+            where iteration_index = ?
+            and route_id = ?
+            """.trimIndent()
+        val preparedStatement: PreparedStatement = conn.prepareStatement(sql)
+        preparedStatement.setInt(1, iterationIndex)
+        preparedStatement.setInt(2, routeId)
+
+        val resultSet = preparedStatement.executeQuery()
+
+        while (resultSet.next()) {
+            result.add(MyPoint(resultSet.getDouble(1), resultSet.getDouble(2)))
+        }
+
+        return result;
     }
 
     private fun writeZonesToFile(
@@ -202,7 +305,7 @@ class WelcomeController {
     private fun writeRoutesToFile(
         updateRoutesModel: UpdateRoutesModel,
         filePath: String = "D:\\VKR\\project\\fakeDB\\fakeDB.txt"
-    ) : MutableList<RouteModel> {
+    ): MutableList<RouteModel> {
         val gson = Gson()
         val jsonString: String = gson.toJson(updateRoutesModel)
         val file = File(filePath)
@@ -274,12 +377,14 @@ class WelcomeController {
 
         val segmentsToClearIds = routeModelToUpdate.segments.map { it.id }
         routeModelToUpdate.segments.clear()
-        routeModelToUpdate.segments.addAll( route.segments.mapNotNull { routeModelMapper.mapRouteSegmentToModel(it) }.toMutableList())
+        routeModelToUpdate.segments.addAll(route.segments.mapNotNull { routeModelMapper.mapRouteSegmentToModel(it) }
+            .toMutableList())
         segmentRepository.deleteAll(segmentRepository.findAllById(segmentsToClearIds))
 
         val pointsToClearById = routeModelToUpdate.coordinates.map { it.id }
         routeModelToUpdate.coordinates.clear()
-        routeModelToUpdate.coordinates.addAll(route.coordinates.mapNotNull { routeModelMapper.mapPointToPointModel(it) }.toMutableList())
+        routeModelToUpdate.coordinates.addAll(route.coordinates.mapNotNull { routeModelMapper.mapPointToPointModel(it) }
+            .toMutableList())
         pointRepository.deleteAll(pointRepository.findAllById(pointsToClearById))
 
         routeModelToUpdate.startPoint = null
@@ -302,4 +407,5 @@ class WelcomeController {
                 lng = zone.lng
             }
     }
+
 }

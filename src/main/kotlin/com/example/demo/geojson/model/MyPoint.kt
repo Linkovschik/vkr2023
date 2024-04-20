@@ -11,4 +11,5 @@ data class MyPoint(val lng: Double = 0.0, val lat: Double = 0.0) {
         val gson = Gson()
         return gson.toJson(this)
     }
+
 }

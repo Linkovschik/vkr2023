@@ -19,6 +19,7 @@ var comp = {
             tempRoutes: [],
             savedRoutes: [],
             tempPoints: [],
+            resultRoutes: [],
             unselectedRouteColor: "black",
             selectedRouteColor: "red",
             selectedRouteSavedColor: "red"
@@ -54,7 +55,6 @@ var comp = {
                        <button type="button" id="updateTempRoutesButton" class="btn btn-primary " v-on:click="addTempRoutesToSavedRoutes()">Добавить созданные маршруты к зафиксированным</button>
                        <button type="button" id="clearTemp" class="btn btn-primary " v-on:click="clearTempRoutes()">Убрать несохранённые объекты</button>
                        <button type="button" id="clearCache" class="btn btn-primary " v-on:click="clearSavedRoutes()">Убрать загруженные объекты</button>
-
                        <br/>
                        <hr/>
 
@@ -65,6 +65,12 @@ var comp = {
                        <br />
                        <hr/>
 
+
+                       <br />
+                       <button type="button" id="clearResult" class="btn btn-primary " v-on:click="clearResultRoutes()">Убрать РЕЗУЛЬТАТ</button>
+                       <button type="button" id="loadResult" class="btn btn-primary " v-on:click="loadResultRoutes()">Загрузить РЕЗУЛЬТАТ</button>
+
+                      <hr/>
                        <div v-if="mapStructure && mapStructure.selectedRoute && mapState == mapStatesEnum.RouteEdit">
                            <route-edit :selectedRoute=mapStructure.selectedRoute
                                        :savedRoutes=savedRoutes
@@ -126,6 +132,13 @@ var comp = {
                         this.setRouteSavedStyle(route)
                 }
             }
+        },
+        resultRoutes: function(newVal, oldVal) {
+            if (newVal) {
+                for (const route of newVal) {
+                    this.setRouteResultStyle(route)
+                }
+            }
         }
     },
     methods: {
@@ -145,6 +158,11 @@ var comp = {
         setRoutePreSavedStyle(route) {
             route.layerObject.setStyle({
                 color: "green"
+            });
+        },
+        setRouteResultStyle(route) {
+            route.layerObject.setStyle({
+                color: "brown"
             });
         },
         setRouteSelectedStyle(route) {
@@ -182,6 +200,13 @@ var comp = {
                 route.removeFromMap()
             }
             this.savedRoutes = []
+            this.resetSelectedRoute()
+        },
+        clearResultRoutes() {
+            for (const route of this.resultRoutes) {
+                route.removeFromMap()
+            }
+            this.resultRoutes = []
             this.resetSelectedRoute()
         },
         removeFromSavedRoutes(route) {
@@ -243,6 +268,30 @@ var comp = {
                 var route = new Route(routeData, this.mapStructure)
                 route.addOnMap()
                 this.savedRoutes.push(route);
+            }
+
+            this.resetSelectedRoute()
+        },
+        loadResultRoutes() {
+            var loadedRouteData = []
+            $.getJSON({
+                    url: '/home/loadRoutesResult',
+                    async: false
+                })
+                .done(function(routeDataList) {
+                    routeDataList.forEach((routeData) => {
+                        loadedRouteData.push(routeData)
+                    });
+                })
+                .fail(function(jqxhr, textStatus, error) {
+                    var err = textStatus + ', ' + error;
+                })
+
+            this.clearResultRoutes()
+            for (const routeData of loadedRouteData) {
+                var route = new Route(routeData, this.mapStructure)
+                route.addOnMap()
+                this.resultRoutes.push(route);
             }
 
             this.resetSelectedRoute()
