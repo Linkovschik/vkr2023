@@ -6,6 +6,8 @@ import com.example.demo.geojson.model.MyPoint
 import com.example.demo.geojson.model.Route
 import com.example.demo.geojson.model.Zone
 import com.example.demo.geojson.service.MappingService
+import com.example.demo.mvc.MyUser
+import com.example.demo.mvc.UserRepository
 import com.example.demo.repository.impl.PointRepository
 import com.example.demo.repository.impl.RouteRepository
 import com.example.demo.repository.impl.SegmentRepository
@@ -23,6 +25,8 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
+import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
@@ -69,6 +73,20 @@ class WelcomeController {
 
     @Autowired
     private lateinit var datasource: DataSource
+
+    @Autowired
+    private lateinit var repository: UserRepository
+    @Autowired
+    private lateinit var passwordEncoder: PasswordEncoder
+
+
+    @PostMapping("/new-user")
+    fun addUser(@RequestBody user: MyUser): String {
+        user.password = passwordEncoder.encode(user.password)
+
+        repository.save(user)
+        return "User is saved"
+    }
 
     @GetMapping("/welcome")
     fun welcome(model: Model): String {
