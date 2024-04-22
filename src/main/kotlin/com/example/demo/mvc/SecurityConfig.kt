@@ -45,7 +45,7 @@ class SecurityConfig {
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         return http.csrf { obj: CsrfConfigurer<HttpSecurity> -> obj.disable() }
             .authorizeHttpRequests(Customizer { auth ->
-                auth.requestMatchers("home/welcome", "home/new-user").permitAll()
+                auth.requestMatchers("home/new-user").permitAll()
                     .requestMatchers("home/**").authenticated()
                     .requestMatchers("/**/*.js", "/**/*.css").permitAll()
                     .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()

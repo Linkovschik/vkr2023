@@ -4,6 +4,7 @@ import com.example.demo.geojson.model.MyPoint
 import com.example.demo.geojson.model.Route
 import com.example.demo.geojson.model.RouteSegment
 import com.example.demo.geojson.model.RouteSegmentStep
+import com.example.demo.mvc.MyUser
 import com.example.demo.repository.model.PointModel
 import com.example.demo.repository.model.RouteModel
 import com.example.demo.repository.model.RouteSegmentModel
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class RouteModelMapper {
-    fun mapRouteToRouteModel(route: Route?): RouteModel? {
+    fun mapRouteToRouteModel(route: Route?, myUser: MyUser): RouteModel? {
         if (route == null) return null
 
         val routeModel = RouteModel()
@@ -31,6 +32,7 @@ class RouteModelMapper {
                 name = route.name
                 startTime = route.startTime
                 endTime = route.endTime
+                user = myUser
             }
 
         return routeModel

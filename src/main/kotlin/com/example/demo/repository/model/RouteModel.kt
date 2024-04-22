@@ -1,5 +1,6 @@
 package com.example.demo.repository.model
 
+import com.example.demo.mvc.MyUser
 import jakarta.persistence.*
 import java.sql.Time
 import java.util.*
@@ -51,4 +52,8 @@ class RouteModel {
 
     @Column(nullable = true)
     var endTime: Time? = null
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "userId")
+    var user: MyUser? = null
 }

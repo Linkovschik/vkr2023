@@ -7,6 +7,7 @@ import com.example.demo.geojson.model.Route
 import com.example.demo.geojson.model.Zone
 import com.example.demo.geojson.service.MappingService
 import com.example.demo.mvc.MyUser
+import com.example.demo.mvc.MyUserDetails
 import com.example.demo.mvc.UserRepository
 import com.example.demo.repository.impl.PointRepository
 import com.example.demo.repository.impl.RouteRepository
@@ -26,6 +27,7 @@ import com.google.gson.reflect.TypeToken
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
@@ -96,6 +98,7 @@ class WelcomeController {
     }
 
     @GetMapping("/zones")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     fun editZone(model: Model): String {
         val point = MyPoint()
         model.addAttribute("point", point);
@@ -332,12 +335,17 @@ class WelcomeController {
         val existingRouteList = routeRepository.findAll()
         val existingRouteIdList = existingRouteList.map { it.id }
 
+        val principal = SecurityContextHolder.getContext().authentication.principal
+
+        if (principal !is MyUserDetails)
+            return mutableListOf()
+
         // create new
         routeRepository.saveAll(updateRoutesModel
             .routes
             .filter { !existingRouteIdList.contains(it.id) }
             .map {
-                routeModelMapper.mapRouteToRouteModel(it)
+                routeModelMapper.mapRouteToRouteModel(it, principal.user)
             }
         )
 
@@ -346,7 +354,7 @@ class WelcomeController {
             .routes
             .forEach {
                 val routeModel = it.id?.let { r -> routeRepository.findById(r).orElse(null) }
-                if (routeModel != null)
+                if (routeModel != null && routeModel.user?.id == principal.user.id)
                     updateRouteModelData(routeModel, it)
             }
 
@@ -355,7 +363,7 @@ class WelcomeController {
             .filter { !updateRoutesModel.routes.map { it.id }.contains(it) }
             .forEach {
                 val routeModelToDelete = it?.let { r -> routeRepository.findById(r).orElse(null) }
-                if (routeModelToDelete != null)
+                if (routeModelToDelete != null && routeModelToDelete.user?.id == principal.user.id)
                     routeRepository.delete(routeModelToDelete)
             }
 
@@ -375,7 +383,16 @@ class WelcomeController {
             return UpdateRoutesModel()
         //return gson.fromJson(result, UpdateRoutesModel::class.java)
 
-        return UpdateRoutesModel(routeRepository.findAll().mapNotNull { routeModelMapper.mapRouteModelToRoute(it) })
+        val principal = SecurityContextHolder.getContext().authentication.principal
+
+        if (principal !is MyUserDetails)
+            return UpdateRoutesModel()
+
+        return UpdateRoutesModel(routeRepository
+            .findAll()
+            .filter { it.user?.id == principal.user.id }
+            .mapNotNull { routeModelMapper.mapRouteModelToRoute(it) }
+        )
     }
 
     private fun updateRouteModelData(routeModelToUpdate: RouteModel?, route: Route?) {
